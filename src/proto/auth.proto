@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package auth;
+
+service AuthService {
+  rpc Register(RegisterRequestDto) returns (RegisterResponseDto);
+  rpc Login(LoginRequestDto) returns (LoginResponseDto);
+  rpc RotateToken(RotateTokenRequestDto) returns (RotateTokenResponseDto);
+  rpc GetUserTokens(GetUserTokenQueryDto) returns (GetUserTokensResponseDto);
+}
+
+message RegisterRequestDto {
+  string username = 1;
+  string password = 2;
+  string email = 3;
+}
+
+message RegisterResponseDto {
+  string username = 1;
+  string email = 2;
+}
+
+message LoginRequestDto {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponseDto {
+  string accessToken = 1;
+  string refreshToken = 2;
+  string userId = 3;
+  string username = 4;
+  string email = 5;
+  string sessionId = 6;
+  string role = 7;
+}
+
+message RotateTokenRequestDto {
+  string userId = 1;
+  string refreshToken = 2;
+  string sessionId = 3;
+}
+
+message RotateTokenResponseDto {
+  string accessToken = 1;
+  string refreshToken = 2;
+  string sessionId = 3;
+}
+
+message GetUserTokenQueryDto {
+  string userId = 1;
+}
+
+message GetUserTokensResponseDto {
+  repeated string tokens = 1;
+}
