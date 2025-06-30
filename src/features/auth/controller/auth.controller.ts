@@ -3,7 +3,7 @@ import { AppContext, Context } from '@shared/decorator/context.decorator';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from '../service/auth.service';
 import { GatewayGetUserTokenQueryDto, GatewayLoginRequestDto, GatewayLoginResponseDto, GatewayRegisterRequestDto, GatewayRegisterResponseDto, GatewayRotateTokenRequestDto, GatewayRotateTokenResponseDto } from '../dto/auth.dto';
-import { JwtGuard } from '@shared/guard/jwt-auth-guard';
+import { JwtGuard } from '@shared/guard/jwt-auth.guard';
 import { RotateTokenRequestDto } from '@root/proto-interface/auth.proto.interface';
 
 @ApiTags('Auth')

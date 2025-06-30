@@ -4,7 +4,7 @@ import { AppLogger } from '@shared/logger';
 import { JwtModule } from '@nestjs/jwt';
 import { AppConfigModule } from '@app/config/config.module';
 import { ConfigService } from '@nestjs/config';
-import { JwtGuard } from '@shared/guard/jwt-auth-guard';
+import { JwtGuard } from '@shared/guard/jwt-auth.guard';
 import { AuthController } from './controller/auth.controller';
 import { AuthService } from './service/auth.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';

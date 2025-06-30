@@ -4,33 +4,96 @@ package rbac;
 
 service RBACService {
   rpc CheckPermission(PermissionRequest) returns (PermissionResponse);
-  rpc GetUserRoles(UserRolesRequest) returns (UserRolesResponse);
+  rpc getUserPermissions(UserPermissionsRequest) returns (UserPermissionsResponse);
   rpc HasRole(RoleCheckRequest) returns (RoleCheckResponse);
+  rpc CreateRole(CreateRolesRequest) returns (CreateRolesResponse);
+  rpc CreateResource(CreateResourcesRequest) returns (CreateResourcesResponse);
+  rpc GrantAccessToRole(GrantAccessToRoleRequest) returns (GrantAccessToRoleResponse);
+  rpc UpdateGrantForRole(UpdateGrantForRoleRequest) returns (UpdateGrantForRoleResponse);
+  rpc DeleteGrantForRole(DeleteGrantForRoleRequest) returns (DeleteGrantForRoleResponse);
+}
+
+message UpdateGrantForRoleRequest {
+  string role = 1;
+  string resource = 2;
+  repeated string actions = 3;
+}
+
+message UpdateGrantForRoleResponse {
+  string role = 1;
+  string resource = 2;
+  repeated string actions = 3;
+}
+
+message DeleteGrantForRoleRequest {
+  string role = 1;
+  string resource = 2;
+  repeated string actions = 3;
+}
+
+message DeleteGrantForRoleResponse {
+  string role = 1;
+  string resource = 2;
+  repeated string actions = 3;
+}
+
+message CreateRolesRequest {
+  string role = 1;
+  string slug = 2;
+  string description = 3;
+}
+
+message CreateRolesResponse {
+  string role = 1;
+  string slug = 2;
+  string description = 3;
+}
+
+message CreateResourcesRequest {
+  string name = 1;
+  string slug = 2;
+  string description = 3;
+}
+
+message CreateResourcesResponse {
+  string name = 1;
+  string slug = 2;
+  string description = 3;
+}
+
+message GrantAccessToRoleRequest {
+  string role = 1;
+  string resource = 2;
+  repeated string actions = 3;
+}
+
+message GrantAccessToRoleResponse {
+  string role = 1;
+  string resource = 2;
+  repeated string actions = 3;
 }
 
 message PermissionRequest {
   string userId = 1;
+  string resource = 2;
+  string action = 3;
 }
 
 message PermissionResponse {
   bool allowed = 1;
-  string reason = 2;
-  repeated string roles = 3;
-  repeated string permissions = 4;
 }
 
-message UserRolesRequest {
+message UserPermissionsRequest {
   string userId = 1;
 }
 
-message UserRolesResponse {
-  repeated Role roles = 1;
+message UserPermissionsResponse {
+  repeated Role permissions = 1;
 }
 
 message Role {
-  string id = 1;
-  string name = 2;
-  repeated string permissions = 3;
+  string resource = 1;
+  repeated string actions = 2;
 }
 
 message RoleCheckRequest {

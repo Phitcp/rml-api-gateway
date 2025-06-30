@@ -1,19 +1,35 @@
-import { Controller, Post, Body, HttpStatus, Query, Get, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpStatus,
+  Get,
+  UseGuards,
+} from '@nestjs/common';
 import { AppContext, Context } from '@shared/decorator/context.decorator';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { AuthService } from '../service/auth.service';
-import { GatewayGetUserTokenQueryDto, GatewayLoginRequestDto, GatewayLoginResponseDto, GatewayRegisterRequestDto, GatewayRegisterResponseDto, GatewayRotateTokenRequestDto, GatewayRotateTokenResponseDto } from '../dto/auth.dto';
-import { JwtGuard } from '@shared/guard/jwt-auth-guard';
-import { RotateTokenRequestDto } from '@root/proto-interface/auth.proto.interface';
 import { RbacService } from '../service/rbac.service';
+import {
+  CreateResourcesRequestDto,
+  CreateResourcesResponseDto,
+  CreateRolesRequestDto,
+  CreateRolesResponseDto,
+  GrantAccessToRoleRequestDto,
+  GrantAccessToRoleResponseDto,
+} from '../dto/rbac.dto';
+import { RbacGuard, RbacMeta } from '@shared/guard/rbac.guard';
+import { JwtGuard } from '@shared/guard/jwt-auth.guard';
 
+@UseGuards(JwtGuard)
 @ApiTags('Rbac')
 @Controller('rbac')
 export class RbacController {
-constructor(
-    private readonly rbacService: RbacService,
-  ) {}
-
+  constructor(private readonly rbacService: RbacService) {}
+  @UseGuards(RbacGuard)
+  @RbacMeta({
+    resource: 'admin_data',
+    action: 'read:all',
+  })
   @ApiOperation({ summary: 'Check user permission per resource' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -24,23 +40,76 @@ constructor(
     return await this.rbacService.checkPermission();
   }
 
-  @ApiOperation({ summary: 'Check user role' })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'User role checked successfully',
+  @UseGuards(RbacGuard)
+  @RbacMeta({
+    resource: 'admin_data',
+    action: 'update:all',
   })
-  @Get('/roles')
-  async checkRole() {
-    return await this.rbacService.hasRole();
+  @ApiOperation({ summary: 'Create a new role' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Role created successfully',
+    type: CreateRolesResponseDto,
+  })
+  @ApiBody({
+    description: 'Role creation details',
+    type: CreateRolesRequestDto,
+    required: true,
+  })
+  @Post('/role')
+  async createRole(
+    @Context() context: AppContext,
+    @Body() createRoleDto: CreateRolesRequestDto,
+  ): Promise<CreateRolesResponseDto> {
+    return await this.rbacService.createRole(context, createRoleDto);
   }
 
-  @ApiOperation({ summary: 'Get user roles' })
+  @UseGuards(RbacGuard)
+  @RbacMeta({
+    resource: 'admin_data',
+    action: 'update:all',
+  })
+  @ApiOperation({ summary: 'Create a new resource' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Resource created successfully',
+    type: CreateResourcesResponseDto,
+  })
+  @ApiBody({
+    description: 'Resource creation details',
+    type: CreateResourcesRequestDto,
+    required: true,
+  })
+  @Post('/resource')
+  async createResource(
+    @Context() context: AppContext,
+    @Body() createResourceDto: CreateResourcesRequestDto,
+  ): Promise<CreateResourcesResponseDto> {
+    return await this.rbacService.createResource(context, createResourceDto);
+  }
+
+  @UseGuards(RbacGuard)
+  @RbacMeta({
+    resource: 'admin_data',
+    action: 'update:all',
+  })
+  @ApiOperation({ summary: 'Grant access to a role' })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'User roles retrieved successfully',
+    description: 'Access granted successfully',
+    type: GrantAccessToRoleResponseDto,
   })
-  @Get('/roles')
-  async getUserRoles() {
-    return await this.rbacService.getUserRoles();
+  @ApiBody({
+    description: 'Details for granting access to a role',
+    type: GrantAccessToRoleRequestDto,
+    required: true,
+  })
+
+  @Post('/grant-access')
+  async grantAccess(
+    @Context() context: AppContext,
+    @Body() grantAccessDto: GrantAccessToRoleRequestDto,
+  ): Promise<GrantAccessToRoleResponseDto> {
+    return await this.rbacService.grantAccess(context, grantAccessDto);
   }
 }

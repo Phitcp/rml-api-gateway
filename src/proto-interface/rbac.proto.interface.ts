@@ -5,34 +5,69 @@
 // source: rbac.proto
 
 /* eslint-disable */
+import { Metadata } from "@grpc/grpc-js";
 import { GrpcMethod, GrpcStreamMethod } from "@nestjs/microservices";
 import { Observable } from "rxjs";
 
 export const protobufPackage = "rbac";
 
+export interface CreateRolesRequest {
+  role: string;
+  slug: string;
+  description: string;
+}
+
+export interface CreateRolesResponse {
+  role: string;
+  slug: string;
+  description: string;
+}
+
+export interface CreateResourcesRequest {
+  name: string;
+  slug: string;
+  description: string;
+}
+
+export interface CreateResourcesResponse {
+  name: string;
+  slug: string;
+  description: string;
+}
+
+export interface GrantAccessToRoleRequest {
+  role: string;
+  resource: string;
+  actions: string[];
+}
+
+export interface GrantAccessToRoleResponse {
+  role: string;
+  resource: string;
+  actions: string[];
+}
+
 export interface PermissionRequest {
   userId: string;
+  resource: string;
+  action: string;
 }
 
 export interface PermissionResponse {
   allowed: boolean;
-  reason: string;
-  roles: string[];
-  permissions: string[];
 }
 
-export interface UserRolesRequest {
+export interface UserPermissionsRequest {
   userId: string;
 }
 
-export interface UserRolesResponse {
-  roles: Role[];
+export interface UserPermissionsResponse {
+  permissions: Role[];
 }
 
 export interface Role {
-  id: string;
-  name: string;
-  permissions: string[];
+  resource: string;
+  actions: string[];
 }
 
 export interface RoleCheckRequest {
@@ -45,40 +80,44 @@ export interface RoleCheckResponse {
 }
 
 export const RBAC_PACKAGE_NAME = "rbac";
+export interface UpdateGrantForRoleRequest {
+  role: string;
+  resource: string;
+  actions: string[];
+}
 
+export interface UpdateGrantForRoleResponse {
+  role: string;
+  resource: string;
+  actions: string[];
+}
+
+export interface DeleteGrantForRoleRequest {
+  role: string;
+  resource: string;
+  actions: string[];
+}
+
+export interface DeleteGrantForRoleResponse {
+  role: string;
+  resource: string;
+  actions: string[];
+}
 export interface RBACServiceClient {
-  checkPermission(request: PermissionRequest): Observable<PermissionResponse>;
+  checkPermission(request: PermissionRequest, metadata: Metadata): Observable<PermissionResponse>;
 
-  getUserRoles(request: UserRolesRequest): Observable<UserRolesResponse>;
+  getUserPermissions(request: UserPermissionsRequest, metadata: Metadata): Observable<UserPermissionsResponse>;
 
-  hasRole(request: RoleCheckRequest): Observable<RoleCheckResponse>;
-}
+  hasRole(request: RoleCheckRequest, metadata: Metadata): Observable<RoleCheckResponse>;
 
-export interface RBACServiceController {
-  checkPermission(
-    request: PermissionRequest,
-  ): Promise<PermissionResponse> | Observable<PermissionResponse> | PermissionResponse;
+  createRole(request: CreateRolesRequest, metadata: Metadata): Observable<CreateRolesResponse>;
 
-  getUserRoles(
-    request: UserRolesRequest,
-  ): Promise<UserRolesResponse> | Observable<UserRolesResponse> | UserRolesResponse;
+  createResource(request: CreateResourcesRequest, metadata: Metadata): Observable<CreateResourcesResponse>;
 
-  hasRole(request: RoleCheckRequest): Promise<RoleCheckResponse> | Observable<RoleCheckResponse> | RoleCheckResponse;
-}
+  grantAccessToRole(request: GrantAccessToRoleRequest, metadata: Metadata): Observable<GrantAccessToRoleResponse>;
+    updateGrantForRole(request: UpdateGrantForRoleRequest, metadata: Metadata): Observable<UpdateGrantForRoleResponse>;
 
-export function RBACServiceControllerMethods() {
-  return function (constructor: Function) {
-    const grpcMethods: string[] = ["checkPermission", "getUserRoles", "hasRole"];
-    for (const method of grpcMethods) {
-      const descriptor: any = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
-      GrpcMethod("RBACService", method)(constructor.prototype[method], method, descriptor);
-    }
-    const grpcStreamMethods: string[] = [];
-    for (const method of grpcStreamMethods) {
-      const descriptor: any = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
-      GrpcStreamMethod("RBACService", method)(constructor.prototype[method], method, descriptor);
-    }
-  };
+  deleteGrantForRole(request: DeleteGrantForRoleRequest, metadata: Metadata): Observable<DeleteGrantForRoleResponse>;
 }
 
 export const RBAC_SERVICE_NAME = "RBACService";
