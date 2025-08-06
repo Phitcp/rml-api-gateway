@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package exp;
+
+service ExpService {
+  rpc CreateExpResource(CreateExpResourceRequest) returns (CreateExpResourceResponse);
+  rpc ValidateExpResource(ValidateExpResourceRequest) returns(ValidateExpResourceResponse);
+}
+
+message Localization {
+  string vn = 1;
+  string en = 2;
+}
+
+message CreateExpResourceRequest {
+  Localization title = 1;
+  Localization description = 2;
+  string type = 3;
+  optional int32 maxClaimAccount = 4;
+  optional int32 maxClaimServer = 5;
+  string status = 6;
+  int32 expAmount = 7;
+}
+
+message CreateExpResourceResponse {
+  bool isSuccess = 1;
+  string id = 2;
+}
+
+
+message UserObject {
+  string userId = 1;
+}
+
+message ValidateExpResourceRequest {
+  string resourceId = 1;
+  UserObject id = 2;
+}
+
+message ValidateExpResourceResponse {
+  bool isValid = 1;
+  optional string errorMessage = 2;
+  int32 expAmount = 3;
+}

@@ -1,51 +1,111 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { LoginRequest, LoginResponse, RegisterOtpRequest, RegisterOtpResponse, RotateTokenRequest, VerifyRegisterOtpRequest, VerifyRegisterOtpResponse } from '@root/proto-interface/auth.proto.interface';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+} from 'class-validator';
+import { Verify } from 'crypto';
 
-const userNameMinLength = 6;
-const passwordMinLength = 6;
-
-export class GatewayRegisterRequestDto {
+export class GatewayRegisterOtpRequest implements RegisterOtpRequest {
   @ApiProperty()
-  @IsNotEmpty()
-  @MinLength(userNameMinLength, {
-    message: `User name need longer than ${userNameMinLength}`,
-  })
-  username: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @MinLength(userNameMinLength, {
-    message: `User name password need to be longer than ${passwordMinLength}`,
-  })
-  password: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
   @IsEmail()
   email: string;
 }
 
-export class GatewayLoginRequestDto {
+export class GatewayRegisterOtpResponse implements RegisterOtpResponse {
   @ApiProperty()
-  @IsNotEmpty()
-  @MinLength(userNameMinLength, {
-    message: `User name need longer than ${userNameMinLength}`,
-  })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty()
+  @IsString()
+  otp: number;
+}
+
+export class GatewayVerifyRegisterOtpRequest implements VerifyRegisterOtpRequest {
+  @ApiProperty()
+  @IsNumber()
+  otp: number;
+
+  @ApiProperty()
+  @IsEmail()
+  email: string;
+}
+
+export class GatewayVerifyRegisterOtpResponse implements VerifyRegisterOtpResponse {
+  @ApiProperty()
+  @IsString()
+  slugId: string;
+
+  @ApiProperty()
+  @IsString()
   username: string;
 
   @ApiProperty()
+  @IsEmail()
+  email: string;
+
+  @ApiProperty()
+  @IsString()
+  accessToken: string;
+
+  @ApiProperty()
+  @IsString()
+  refreshToken: string;
+
+  @ApiProperty()
+  @IsString()
+  sessionId: string;
+
+  @ApiProperty()
+  @IsString()
+  role: string;
+}
+
+export class GatewayLoginRequestDto implements LoginRequest {
+  @ApiProperty()
   @IsNotEmpty()
-  @MinLength(userNameMinLength, {
-    message: `User name need longer than ${userNameMinLength}`,
-  })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
   password: string;
 }
 
-export class GatewayRotateTokenRequestDto {
+export class GatewayLoginResponseDto implements LoginResponse {
   @ApiProperty()
-  @IsNotEmpty()
-  userId: string;
+  @IsString()
+  accessToken: string;
 
+  @ApiProperty()
+  @IsString()
+  refreshToken: string;
+
+  @ApiProperty()
+  @IsString()
+  slugId: string;
+
+  @ApiProperty()
+  @IsString()
+  username: string;
+
+  @ApiProperty()
+  @IsEmail()
+  email: string;
+
+  @ApiProperty()
+  @IsString()
+  sessionId: string;
+
+  @ApiProperty()
+  @IsString()
+  role: string;
+}
+
+export class GatewayRotateTokenRequestDto implements Partial<RotateTokenRequest> {
   @ApiProperty()
   @IsNotEmpty()
   refreshToken: string;
@@ -68,47 +128,7 @@ export class GatewayLogOutRequestDto {
 export class GatewayGetUserTokenQueryDto {
   @ApiProperty()
   @IsNotEmpty()
-  userId: string;
-}
-
-export class GatewayRegisterResponseDto {
-  @ApiProperty()
-  @IsString()
-  username: string;
-
-  @ApiProperty()
-  @IsEmail()
-  email: string;
-}
-
-export class GatewayLoginResponseDto {
-  @ApiProperty()
-  @IsString()
-  accessToken: string;
-
-  @ApiProperty()
-  @IsString()
-  refreshToken: string;
-
-  @ApiProperty()
-  @IsString()
-  userId: string;
-
-  @ApiProperty()
-  @IsString()
-  username: string;
-
-  @ApiProperty()
-  @IsEmail()
-  email: string;
-
-  @ApiProperty()
-  @IsString()
-  sessionId: string;
-
-  @ApiProperty()
-  @IsString()
-  role: string;
+  slugId: string;
 }
 
 export class GatewayRotateTokenResponseDto {

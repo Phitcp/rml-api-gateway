@@ -1,7 +1,7 @@
 {
-  "name": "rml-user-service",
+  "name": "rml-api-gateway",
   "version": "0.0.1",
-  "description": "Handles registration, login, JWT, and role-based access",
+  "description": "API gateway, handle grpc to http requests",
   "author": "",
   "private": true,
   "license": "UNLICENSED",

@@ -11,27 +11,47 @@ import { Observable } from "rxjs";
 
 export const protobufPackage = "rbac";
 
+export interface UpdateGrantForRoleRequest {
+  role: string;
+  resource: string;
+  actions: string[];
+}
+
+export interface UpdateGrantForRoleResponse {
+  role: string;
+  resource: string;
+  actions: string[];
+}
+
+export interface DeleteGrantForRoleRequest {
+  role: string;
+  resource: string;
+  actions: string[];
+}
+
+export interface DeleteGrantForRoleResponse {
+  role: string;
+  resource: string;
+  actions: string[];
+}
+
 export interface CreateRolesRequest {
   role: string;
-  slug: string;
   description: string;
 }
 
 export interface CreateRolesResponse {
   role: string;
-  slug: string;
   description: string;
 }
 
 export interface CreateResourcesRequest {
-  name: string;
-  slug: string;
+  resource: string;
   description: string;
 }
 
 export interface CreateResourcesResponse {
-  name: string;
-  slug: string;
+  resource: string;
   description: string;
 }
 
@@ -80,44 +100,79 @@ export interface RoleCheckResponse {
 }
 
 export const RBAC_PACKAGE_NAME = "rbac";
-export interface UpdateGrantForRoleRequest {
-  role: string;
-  resource: string;
-  actions: string[];
-}
 
-export interface UpdateGrantForRoleResponse {
-  role: string;
-  resource: string;
-  actions: string[];
-}
-
-export interface DeleteGrantForRoleRequest {
-  role: string;
-  resource: string;
-  actions: string[];
-}
-
-export interface DeleteGrantForRoleResponse {
-  role: string;
-  resource: string;
-  actions: string[];
-}
 export interface RBACServiceClient {
-  checkPermission(request: PermissionRequest, metadata: Metadata): Observable<PermissionResponse>;
+  checkPermission(request: PermissionRequest, metaData: Metadata): Observable<PermissionResponse>;
 
-  getUserPermissions(request: UserPermissionsRequest, metadata: Metadata): Observable<UserPermissionsResponse>;
+  getUserPermissions(request: UserPermissionsRequest, metaData: Metadata): Observable<UserPermissionsResponse>;
 
-  hasRole(request: RoleCheckRequest, metadata: Metadata): Observable<RoleCheckResponse>;
+  hasRole(request: RoleCheckRequest, metaData: Metadata): Observable<RoleCheckResponse>;
 
-  createRole(request: CreateRolesRequest, metadata: Metadata): Observable<CreateRolesResponse>;
+  createRole(request: CreateRolesRequest, metaData: Metadata): Observable<CreateRolesResponse>;
 
-  createResource(request: CreateResourcesRequest, metadata: Metadata): Observable<CreateResourcesResponse>;
+  createResource(request: CreateResourcesRequest, metaData: Metadata): Observable<CreateResourcesResponse>;
 
-  grantAccessToRole(request: GrantAccessToRoleRequest, metadata: Metadata): Observable<GrantAccessToRoleResponse>;
-    updateGrantForRole(request: UpdateGrantForRoleRequest, metadata: Metadata): Observable<UpdateGrantForRoleResponse>;
+  grantAccessToRole(request: GrantAccessToRoleRequest, metaData: Metadata): Observable<GrantAccessToRoleResponse>;
 
-  deleteGrantForRole(request: DeleteGrantForRoleRequest, metadata: Metadata): Observable<DeleteGrantForRoleResponse>;
+  updateGrantForRole(request: UpdateGrantForRoleRequest, metaData: Metadata): Observable<UpdateGrantForRoleResponse>;
+
+  deleteGrantForRole(request: DeleteGrantForRoleRequest, metaData: Metadata): Observable<DeleteGrantForRoleResponse>;
+}
+
+export interface RBACServiceController {
+  checkPermission(
+    request: PermissionRequest,
+  ): Promise<PermissionResponse> | Observable<PermissionResponse> | PermissionResponse;
+
+  getUserPermissions(
+    request: UserPermissionsRequest,
+  ): Promise<UserPermissionsResponse> | Observable<UserPermissionsResponse> | UserPermissionsResponse;
+
+  hasRole(request: RoleCheckRequest): Promise<RoleCheckResponse> | Observable<RoleCheckResponse> | RoleCheckResponse;
+
+  createRole(
+    request: CreateRolesRequest,
+  ): Promise<CreateRolesResponse> | Observable<CreateRolesResponse> | CreateRolesResponse;
+
+  createResource(
+    request: CreateResourcesRequest,
+  ): Promise<CreateResourcesResponse> | Observable<CreateResourcesResponse> | CreateResourcesResponse;
+
+  grantAccessToRole(
+    request: GrantAccessToRoleRequest,
+  ): Promise<GrantAccessToRoleResponse> | Observable<GrantAccessToRoleResponse> | GrantAccessToRoleResponse;
+
+  updateGrantForRole(
+    request: UpdateGrantForRoleRequest,
+  ): Promise<UpdateGrantForRoleResponse> | Observable<UpdateGrantForRoleResponse> | UpdateGrantForRoleResponse;
+
+  deleteGrantForRole(
+    request: DeleteGrantForRoleRequest,
+  ): Promise<DeleteGrantForRoleResponse> | Observable<DeleteGrantForRoleResponse> | DeleteGrantForRoleResponse;
+}
+
+export function RBACServiceControllerMethods() {
+  return function (constructor: Function) {
+    const grpcMethods: string[] = [
+      "checkPermission",
+      "getUserPermissions",
+      "hasRole",
+      "createRole",
+      "createResource",
+      "grantAccessToRole",
+      "updateGrantForRole",
+      "deleteGrantForRole",
+    ];
+    for (const method of grpcMethods) {
+      const descriptor: any = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
+      GrpcMethod("RBACService", method)(constructor.prototype[method], method, descriptor);
+    }
+    const grpcStreamMethods: string[] = [];
+    for (const method of grpcStreamMethods) {
+      const descriptor: any = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
+      GrpcStreamMethod("RBACService", method)(constructor.prototype[method], method, descriptor);
+    }
+  };
 }
 
 export const RBAC_SERVICE_NAME = "RBACService";

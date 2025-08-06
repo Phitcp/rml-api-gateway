@@ -5,7 +5,6 @@
 // source: auth.proto
 
 /* eslint-disable */
-import { Metadata } from "@grpc/grpc-js";
 import { GrpcMethod, GrpcStreamMethod } from "@nestjs/microservices";
 import { Observable } from "rxjs";
 
@@ -63,15 +62,12 @@ export interface RotateTokenResponse {
 }
 
 export interface GetUserTokenQuery {
-  userId: string;
+  slugId: string;
 }
 
 export interface GetUserTokensResponse {
   tokens: string[];
 }
-
-export const AUTH_PACKAGE_NAME = "auth";
-
 
 export interface GetUserFromSlugRequest {
   slugId: string;
@@ -84,18 +80,20 @@ export interface GetUserFromSlugResponse {
   email: string;
 }
 
+export const AUTH_PACKAGE_NAME = "auth";
+
 export interface AuthServiceClient {
-  login(request: LoginRequest, metaData: Metadata): Observable<LoginResponse>;
+  login(request: LoginRequest): Observable<LoginResponse>;
 
-  rotateToken(request: RotateTokenRequest, metaData: Metadata): Observable<RotateTokenResponse>;
+  rotateToken(request: RotateTokenRequest): Observable<RotateTokenResponse>;
 
-  getUserTokens(request: GetUserTokenQuery, metaData: Metadata): Observable<GetUserTokensResponse>;
+  getUserTokens(request: GetUserTokenQuery): Observable<GetUserTokensResponse>;
 
-  registerOtp(request: RegisterOtpRequest, metaData: Metadata): Observable<RegisterOtpResponse>;
+  registerOtp(request: RegisterOtpRequest): Observable<RegisterOtpResponse>;
 
-  verifyRegisterOtp(request: VerifyRegisterOtpRequest, metaData: Metadata): Observable<VerifyRegisterOtpResponse>;
+  verifyRegisterOtp(request: VerifyRegisterOtpRequest): Observable<VerifyRegisterOtpResponse>;
 
-  getUserFromSlug(request: GetUserFromSlugRequest, metaData: Metadata): Observable<GetUserFromSlugResponse>;
+  getUserFromSlug(request: GetUserFromSlugRequest): Observable<GetUserFromSlugResponse>;
 }
 
 export interface AuthServiceController {
@@ -116,11 +114,22 @@ export interface AuthServiceController {
   verifyRegisterOtp(
     request: VerifyRegisterOtpRequest,
   ): Promise<VerifyRegisterOtpResponse> | Observable<VerifyRegisterOtpResponse> | VerifyRegisterOtpResponse;
+
+  getUserFromSlug(
+    request: GetUserFromSlugRequest,
+  ): Promise<GetUserFromSlugResponse> | Observable<GetUserFromSlugResponse> | GetUserFromSlugResponse;
 }
 
 export function AuthServiceControllerMethods() {
   return function (constructor: Function) {
-    const grpcMethods: string[] = ["login", "rotateToken", "getUserTokens", "registerOtp", "verifyRegisterOtp"];
+    const grpcMethods: string[] = [
+      "login",
+      "rotateToken",
+      "getUserTokens",
+      "registerOtp",
+      "verifyRegisterOtp",
+      "getUserFromSlug",
+    ];
     for (const method of grpcMethods) {
       const descriptor: any = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
       GrpcMethod("AuthService", method)(constructor.prototype[method], method, descriptor);

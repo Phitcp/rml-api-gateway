@@ -10,12 +10,12 @@ import { AppContext, Context } from '@shared/decorator/context.decorator';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { RbacService } from '../service/rbac.service';
 import {
-  CreateResourcesRequestDto,
-  CreateResourcesResponseDto,
-  CreateRolesRequestDto,
-  CreateRolesResponseDto,
-  GrantAccessToRoleRequestDto,
-  GrantAccessToRoleResponseDto,
+  GatewayCreateResourcesRequestDto,
+  GatewayCreateResourcesResponseDto,
+  GatewayCreateRolesRequestDto,
+  GatewayCreateRolesResponseDto,
+  GatewayGrantAccessToRoleRequestDto,
+  GatewayGrantAccessToRoleResponseDto,
 } from '../dto/rbac.dto';
 import { RbacGuard, RbacMeta } from '@shared/guard/rbac.guard';
 import { JwtGuard } from '@shared/guard/jwt-auth.guard';
@@ -49,18 +49,18 @@ export class RbacController {
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'Role created successfully',
-    type: CreateRolesResponseDto,
+    type: GatewayCreateRolesResponseDto,
   })
   @ApiBody({
     description: 'Role creation details',
-    type: CreateRolesRequestDto,
+    type: GatewayCreateRolesRequestDto,
     required: true,
   })
   @Post('/role')
   async createRole(
     @Context() context: AppContext,
-    @Body() createRoleDto: CreateRolesRequestDto,
-  ): Promise<CreateRolesResponseDto> {
+    @Body() createRoleDto: GatewayCreateRolesRequestDto,
+  ): Promise<GatewayCreateRolesResponseDto> {
     return await this.rbacService.createRole(context, createRoleDto);
   }
 
@@ -73,18 +73,18 @@ export class RbacController {
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'Resource created successfully',
-    type: CreateResourcesResponseDto,
+    type: GatewayCreateResourcesResponseDto,
   })
   @ApiBody({
     description: 'Resource creation details',
-    type: CreateResourcesRequestDto,
+    type: GatewayCreateResourcesRequestDto,
     required: true,
   })
   @Post('/resource')
   async createResource(
     @Context() context: AppContext,
-    @Body() createResourceDto: CreateResourcesRequestDto,
-  ): Promise<CreateResourcesResponseDto> {
+    @Body() createResourceDto: GatewayCreateResourcesRequestDto,
+  ): Promise<GatewayCreateResourcesResponseDto> {
     return await this.rbacService.createResource(context, createResourceDto);
   }
 
@@ -97,19 +97,19 @@ export class RbacController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Access granted successfully',
-    type: GrantAccessToRoleResponseDto,
+    type: GatewayGrantAccessToRoleResponseDto,
   })
   @ApiBody({
     description: 'Details for granting access to a role',
-    type: GrantAccessToRoleRequestDto,
+    type: GatewayGrantAccessToRoleRequestDto,
     required: true,
   })
 
   @Post('/grant-access')
   async grantAccess(
     @Context() context: AppContext,
-    @Body() grantAccessDto: GrantAccessToRoleRequestDto,
-  ): Promise<GrantAccessToRoleResponseDto> {
+    @Body() grantAccessDto: GatewayGrantAccessToRoleRequestDto,
+  ): Promise<GatewayGrantAccessToRoleResponseDto> {
     return await this.rbacService.grantAccess(context, grantAccessDto);
   }
 }

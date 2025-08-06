@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package character;
+
+service CharacterService {
+  rpc CreateCharacterProfile(CreateCharacterProfileRequest) returns (CreateCharacterProfileResponse);
+}
+
+message CreateCharacterProfileRequest {
+  string userId = 1;
+  string userName = 2;
+}
+
+message CreateCharacterProfileResponse {
+  string characterId = 1;
+  string characterName = 2;
+  string characterTitle = 3;
+  int32 level = 4;
+  int32 exp = 5;
+  int32 nextLevelExp = 6;
+}

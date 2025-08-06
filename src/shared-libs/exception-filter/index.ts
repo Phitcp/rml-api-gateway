@@ -13,7 +13,6 @@ export class ExceptionHandler implements ExceptionFilter {
   constructor(private logger: AppLogger) {}
   private handleGrpcException(exception: any, req: Request, res: Response) {
     this.logger.error('GRPC Error');
-    const metadata = exception.metadata.getMap()
 
     const message = exception.details ?? 'Unhandled Error';
     const status = this.grpcStatusToHttpStatus(exception.code);

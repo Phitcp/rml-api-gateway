@@ -3,54 +3,80 @@ syntax = "proto3";
 package auth;
 
 service AuthService {
-  rpc Register(RegisterRequestDto) returns (RegisterResponseDto);
-  rpc Login(LoginRequestDto) returns (LoginResponseDto);
-  rpc RotateToken(RotateTokenRequestDto) returns (RotateTokenResponseDto);
-  rpc GetUserTokens(GetUserTokenQueryDto) returns (GetUserTokensResponseDto);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc RotateToken(RotateTokenRequest) returns (RotateTokenResponse);
+  rpc GetUserTokens(GetUserTokenQuery) returns (GetUserTokensResponse);
+  rpc RegisterOtp(RegisterOtpRequest) returns (RegisterOtpResponse);
+  rpc VerifyRegisterOtp(VerifyRegisterOtpRequest) returns (VerifyRegisterOtpResponse);
+  rpc GetUserFromSlug(GetUserFromSlugRequest) returns (GetUserFromSlugResponse);
 }
 
-message RegisterRequestDto {
-  string username = 1;
-  string password = 2;
-  string email = 3;
+message RegisterOtpRequest {
+  string email = 1;
 }
 
-message RegisterResponseDto {
-  string username = 1;
+message RegisterOtpResponse {
+  string email = 1;
+  int32 otp = 2;
+}
+
+message VerifyRegisterOtpRequest {
+  int32 otp = 1;
   string email = 2;
 }
 
-message LoginRequestDto {
-  string username = 1;
+message VerifyRegisterOtpResponse {
+  string slugId = 1;
+  string username = 2;
+  string email = 3;
+  string accessToken = 4;
+  string refreshToken = 5;
+  string sessionId = 6;
+  string role = 7;
+}
+
+message LoginRequest {
+  string email = 1;
   string password = 2;
 }
 
-message LoginResponseDto {
+message LoginResponse {
   string accessToken = 1;
   string refreshToken = 2;
-  string userId = 3;
+  string slugId = 3;
   string username = 4;
   string email = 5;
   string sessionId = 6;
   string role = 7;
 }
 
-message RotateTokenRequestDto {
+message RotateTokenRequest {
   string userId = 1;
   string refreshToken = 2;
   string sessionId = 3;
 }
 
-message RotateTokenResponseDto {
+message RotateTokenResponse {
   string accessToken = 1;
   string refreshToken = 2;
   string sessionId = 3;
 }
 
-message GetUserTokenQueryDto {
-  string userId = 1;
+message GetUserTokenQuery {
+  string slugId = 1;
 }
 
-message GetUserTokensResponseDto {
+message GetUserTokensResponse {
   repeated string tokens = 1;
+}
+
+message GetUserFromSlugRequest {
+  string slugId = 1;
+}
+
+message GetUserFromSlugResponse {
+  string userId = 1;
+  string username = 2;
+  string role = 3;
+  string email = 4;
 }

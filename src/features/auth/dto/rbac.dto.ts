@@ -1,7 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { CreateResourcesRequest, CreateResourcesResponse, CreateRolesRequest, CreateRolesResponse, GrantAccessToRoleRequest, GrantAccessToRoleResponse } from '@root/proto-interface/rbac.proto.interface';
+import { IsNotEmpty, IsString } from 'class-validator';
 
-export class CreateRolesRequestDto {
+export class GatewayCreateRolesRequestDto implements CreateRolesRequest {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
@@ -10,15 +11,10 @@ export class CreateRolesRequestDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  slug: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
   description: string;
 }
 
-export class CreateRolesResponseDto {
+export class GatewayCreateRolesResponseDto implements CreateRolesResponse {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
@@ -27,7 +23,14 @@ export class CreateRolesResponseDto {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  slug: string;
+  description: string;
+}
+
+export class GatewayCreateResourcesRequestDto implements CreateResourcesRequest {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  resource: string;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -35,16 +38,11 @@ export class CreateRolesResponseDto {
   description: string;
 }
 
-export class CreateResourcesRequestDto {
+export class GatewayCreateResourcesResponseDto implements CreateResourcesResponse {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  name: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  slug: string;
+  resource: string;
 
   @ApiProperty()
   @IsNotEmpty()
@@ -52,24 +50,7 @@ export class CreateResourcesRequestDto {
   description: string;
 }
 
-export class CreateResourcesResponseDto {
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  name: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  slug: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  description: string;
-}
-
-export class GrantAccessToRoleRequestDto {
+export class GatewayGrantAccessToRoleRequestDto implements GrantAccessToRoleRequest {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
@@ -85,7 +66,7 @@ export class GrantAccessToRoleRequestDto {
   actions: string[];
 }
 
-export class GrantAccessToRoleResponseDto {
+export class GatewayGrantAccessToRoleResponseDto implements GrantAccessToRoleResponse {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()

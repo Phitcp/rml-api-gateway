@@ -7,7 +7,7 @@ import { GrpcClient } from '@shared/utilities/grpc-client';
 import { AppLogger } from '@shared/logger';
 import { firstValueFrom } from 'rxjs';
 import { AppContext } from '@shared/decorator/context.decorator';
-import { CreateRolesRequestDto } from '../dto/rbac.dto';
+import { GatewayCreateRolesRequestDto } from '../dto/rbac.dto';
 import { basename } from 'path';
 import { Injectable } from '@nestjs/common/decorators/core/injectable.decorator';
 import { Metadata } from '@grpc/grpc-js';
@@ -39,7 +39,7 @@ export class RbacService {
           {
             userId: '123',
             resource: 'abc',
-            action: 'abc'
+            action: 'abc',
           },
           metadata,
         ),
@@ -57,7 +57,10 @@ export class RbacService {
     return true;
   }
 
-  async createRole(context: AppContext, createRoleDto: CreateRolesRequestDto) {
+  async createRole(
+    context: AppContext,
+    createRoleDto: GatewayCreateRolesRequestDto,
+  ) {
     try {
       this.appLogger
         .addLogContext(context.traceId)
@@ -69,14 +72,7 @@ export class RbacService {
       metadata.add('x-trace-id', context.traceId);
 
       const result = await firstValueFrom(
-        this.rbacService.createRole(
-          {
-            role: createRoleDto.role,
-            slug: createRoleDto.slug,
-            description: createRoleDto.description,
-          },
-          metadata,
-        ),
+        this.rbacService.createRole(createRoleDto, metadata),
       );
 
       this.appLogger.log('Did create role successfully');
@@ -104,11 +100,7 @@ export class RbacService {
       metadata.add('x-trace-id', context.traceId);
       const result = await firstValueFrom(
         this.rbacService.createResource(
-          {
-            name: createResourceDto.name,
-            description: createResourceDto.description,
-            slug: createResourceDto.slug,
-          },
+          createResourceDto,
           metadata,
         ),
       );

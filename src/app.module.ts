@@ -8,11 +8,15 @@ import { ExceptionHandler } from './shared-libs/exception-filter';
 import { RequestLogMiddleWare } from './shared-libs/middlewares/request-log.middleware';
 import { ConfigService } from '@nestjs/config';
 import { AppConfigModule } from './config/config.module';
+import { CharacterModule } from '@feature/character/character.module';
+import { ExpModule } from '@feature/exp/exp.module';
 
 @Module({
   imports: [
     AppConfigModule,
     AuthModule,
+    CharacterModule,
+    ExpModule
   ],
   controllers: [AppController],
   providers: [

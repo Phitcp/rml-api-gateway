@@ -1,35 +1,68 @@
-import { Controller, Post, Body, HttpStatus, Query, Get, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpStatus,
+  Query,
+  Get,
+  UseGuards,
+} from '@nestjs/common';
 import { AppContext, Context } from '@shared/decorator/context.decorator';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthService } from '../service/auth.service';
-import { GatewayGetUserTokenQueryDto, GatewayLoginRequestDto, GatewayLoginResponseDto, GatewayRegisterRequestDto, GatewayRegisterResponseDto, GatewayRotateTokenRequestDto, GatewayRotateTokenResponseDto } from '../dto/auth.dto';
+import {
+  GatewayGetUserTokenQueryDto,
+  GatewayLoginRequestDto,
+  GatewayLoginResponseDto,
+  GatewayRegisterOtpRequest,
+  GatewayRegisterOtpResponse,
+  GatewayRotateTokenRequestDto,
+  GatewayRotateTokenResponseDto,
+  GatewayVerifyRegisterOtpRequest,
+} from '../dto/auth.dto';
 import { JwtGuard } from '@shared/guard/jwt-auth.guard';
-import { RotateTokenRequestDto } from '@root/proto-interface/auth.proto.interface';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-constructor(
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
-  @ApiOperation({ summary: 'Register app user' })
+  @ApiOperation({ summary: 'Send otp register to user by email' })
   @ApiResponse({
-    status: HttpStatus.CREATED,
-    description: 'Create user successfully',
-    type: GatewayRegisterResponseDto,
+    status: HttpStatus.OK,
+    description: 'Send otp successfully',
+    type: GatewayRegisterOtpResponse,
+  })
+  @ApiBody({
+    description: 'User email to send otp',
+    type: GatewayRegisterOtpRequest,
+    required: true,
+  })
+  @Post('/register-email')
+  async registerEmail(
+    @Body() registerDto: GatewayRegisterOtpRequest,
+    @Context() context: AppContext,
+  ) {
+    return await this.authService.registerOtp(context, registerDto);
+  }
+
+  @ApiOperation({ summary: 'Verify register otp user' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Verify user successfully',
+    type: GatewayRegisterOtpResponse,
   })
   @ApiBody({
     description: 'User register info',
-    type: GatewayRegisterRequestDto,
+    type: GatewayVerifyRegisterOtpRequest,
     required: true,
   })
-  @Post('/register')
-  async register(
-    @Body() registerDto: GatewayRegisterRequestDto,
+  @Post('/verify-register-otp')
+  async verifyRegisterOtp(
+    @Body() registerDto: GatewayVerifyRegisterOtpRequest,
     @Context() context: AppContext,
   ) {
-    return await this.authService.registerUser(context, registerDto);
+    return await this.authService.verifyRegisterOtp(context, registerDto);
   }
 
   @ApiOperation({ summary: 'User login' })
@@ -62,7 +95,7 @@ constructor(
   })
   @Post('/rotate-token')
   async rotateToken(
-    @Body() rotateToken: RotateTokenRequestDto,
+    @Body() rotateToken: GatewayRotateTokenRequestDto,
     @Context() context: AppContext,
   ) {
     return await this.authService.rotateToken(context, rotateToken);

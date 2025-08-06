@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { Metadata } from '@grpc/grpc-js';
 import {
   CanActivate,
   ExecutionContext,
@@ -8,15 +9,28 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { AuthServiceClient } from '@root/proto-interface/auth.proto.interface';
+import { GrpcClient } from '@shared/utilities/grpc-client';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class JwtGuard implements CanActivate {
+  private authService: AuthServiceClient;
+
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
-  ) {}
+  ) {
+    const grpcClient = new GrpcClient<AuthServiceClient>({
+      package: 'auth',
+      protoPath: 'src/proto/auth.proto',
+      url: '0.0.0.0:4001',
+      serviceName: 'AuthService',
+    });
+    this.authService = grpcClient.getService();
+  }
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 
     const authHeader = request.get('Authorization') as string;
@@ -31,7 +45,22 @@ export class JwtGuard implements CanActivate {
         secret: this.configService.get('jwt').jwtSecret,
       });
 
-      request['user'] = userDataToken;
+      if (!userDataToken.slugId) {
+        throw new HttpException('Invalid request', HttpStatus.FORBIDDEN);
+      }
+
+      const metadata = new Metadata();
+      metadata.add('x-trace-id', request.get('x-trace-id'));
+      const user = await firstValueFrom(
+        this.authService.getUserFromSlug(
+          {
+            slugId: userDataToken.slugId,
+          },
+          metadata,
+        ),
+      );
+      request['user'] = { ...userDataToken, ...user };
+
       return true;
     } catch (_) {
       throw new HttpException('Invalid token', HttpStatus.FORBIDDEN);

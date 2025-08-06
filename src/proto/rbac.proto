@@ -39,26 +39,22 @@ message DeleteGrantForRoleResponse {
 
 message CreateRolesRequest {
   string role = 1;
-  string slug = 2;
-  string description = 3;
+  string description = 2;
 }
 
 message CreateRolesResponse {
   string role = 1;
-  string slug = 2;
-  string description = 3;
+  string description = 2;
 }
 
 message CreateResourcesRequest {
-  string name = 1;
-  string slug = 2;
-  string description = 3;
+  string resource = 1;
+  string description = 2;
 }
 
 message CreateResourcesResponse {
-  string name = 1;
-  string slug = 2;
-  string description = 3;
+  string resource = 1;
+  string description = 2;
 }
 
 message GrantAccessToRoleRequest {

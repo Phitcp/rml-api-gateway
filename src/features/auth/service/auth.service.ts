@@ -5,10 +5,9 @@ import { basename } from 'path';
 import { GrpcClient } from '@shared/utilities/grpc-client';
 import {
   AuthServiceClient,
-  GetUserTokensResponseDto,
-  LoginResponseDto,
-  RegisterResponseDto,
-  RotateTokenResponseDto,
+  GetUserTokensResponse,
+  LoginResponse,
+  RotateTokenResponse,
 } from '@root/proto-interface/auth.proto.interface';
 import { firstValueFrom } from 'rxjs';
 import { Metadata } from '@grpc/grpc-js'; // Use require to avoid issues with Metadata not being recognized in the import statement
@@ -25,26 +24,8 @@ export class AuthService {
 
     this.authService = grpcClient.getService();
   }
-  async registerUser(
-    context: AppContext,
-    data: any,
-  ): Promise<RegisterResponseDto> {
-    this.appLogger
-      .addLogContext(context.traceId)
-      .addMsgParam(basename(__filename))
-      .addMsgParam('registerUser');
-    // Assign traceId using gRPC metadata (like a header)
-    const metadata = new Metadata();
-    metadata.add('x-trace-id', context.traceId);
 
-    const response = await firstValueFrom(
-      this.authService.register(data, metadata),
-    );
-    this.appLogger.log('Did registerUser');
-    return response;
-  }
-
-  async login(context: AppContext, data: any): Promise<LoginResponseDto> {
+  async login(context: AppContext, data: any): Promise<LoginResponse> {
     this.appLogger
       .addLogContext(context.traceId)
       .addMsgParam(basename(__filename))
@@ -59,7 +40,8 @@ export class AuthService {
     this.appLogger.log('Did login');
     return response;
   }
-  async rotateToken(context: AppContext, data: any): Promise<RotateTokenResponseDto> {
+
+  async rotateToken(context: AppContext, data: any): Promise<RotateTokenResponse> {
     this.appLogger
       .addLogContext(context.traceId)
       .addMsgParam(basename(__filename))
@@ -75,7 +57,8 @@ export class AuthService {
     this.appLogger.log('Did rotateToken');
     return response;
   }
-  async getTokenForUser(context: AppContext, data: any): Promise<GetUserTokensResponseDto> {
+
+  async getTokenForUser(context: AppContext, data: any): Promise<GetUserTokensResponse> {
     try {
       this.appLogger
         .addLogContext(context.traceId)
@@ -95,5 +78,38 @@ export class AuthService {
       this.appLogger.error('Failed to getTokenForUser');
       throw error;
     }
+  }
+
+  async registerOtp(context: AppContext, data: any): Promise<any> {
+    this.appLogger
+      .addLogContext(context.traceId)
+      .addMsgParam(basename(__filename))
+      .addMsgParam('registerOtp');
+    this.appLogger.log('Will registerOtp');
+    const metadata = new Metadata();
+    metadata.add('x-trace-id', context.traceId);
+    const response = await firstValueFrom(
+      this.authService.registerOtp(data, metadata),
+    );
+    this.appLogger.log('Did registerOtp');
+    return response;
+  }
+
+  async verifyRegisterOtp(
+    context: AppContext,
+    data: any,
+  ): Promise<any> {
+    this.appLogger
+      .addLogContext(context.traceId)
+      .addMsgParam(basename(__filename))
+      .addMsgParam('verifyRegisterOtp');
+    this.appLogger.log('Will verifyRegisterOtp');
+    const metadata = new Metadata();
+    metadata.add('x-trace-id', context.traceId);
+    const response = await firstValueFrom(
+      this.authService.verifyRegisterOtp(data, metadata),
+    );
+    this.appLogger.log('Did verifyRegisterOtp');
+    return response;
   }
 }
