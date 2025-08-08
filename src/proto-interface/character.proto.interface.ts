@@ -31,28 +31,4 @@ export interface CharacterServiceClient {
   createCharacterProfile(request: CreateCharacterProfileRequest, metaData: Metadata): Observable<CreateCharacterProfileResponse>;
 }
 
-export interface CharacterServiceController {
-  createCharacterProfile(
-    request: CreateCharacterProfileRequest,
-  ):
-    | Promise<CreateCharacterProfileResponse>
-    | Observable<CreateCharacterProfileResponse>
-    | CreateCharacterProfileResponse;
-}
-
-export function CharacterServiceControllerMethods() {
-  return function (constructor: Function) {
-    const grpcMethods: string[] = ["createCharacterProfile"];
-    for (const method of grpcMethods) {
-      const descriptor: any = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
-      GrpcMethod("CharacterService", method)(constructor.prototype[method], method, descriptor);
-    }
-    const grpcStreamMethods: string[] = [];
-    for (const method of grpcStreamMethods) {
-      const descriptor: any = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
-      GrpcStreamMethod("CharacterService", method)(constructor.prototype[method], method, descriptor);
-    }
-  };
-}
-
 export const CHARACTER_SERVICE_NAME = "CharacterService";

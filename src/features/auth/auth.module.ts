@@ -10,6 +10,7 @@ import { AuthService } from './service/auth.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { RbacService } from './service/rbac.service';
 import { RbacController } from './controller/rbac.controller';
+import { AppModule } from '@root/app.module';
 
 @Module({
   imports: [

@@ -2,9 +2,12 @@ syntax = "proto3";
 
 package exp;
 
+import "google/protobuf/empty.proto";
+
 service ExpService {
   rpc CreateExpResource(CreateExpResourceRequest) returns (CreateExpResourceResponse);
   rpc ValidateExpResource(ValidateExpResourceRequest) returns(ValidateExpResourceResponse);
+  rpc ClaimExp(ClaimExpRequest) returns(google.protobuf.Empty);
 }
 
 message Localization {
@@ -27,7 +30,6 @@ message CreateExpResourceResponse {
   string id = 2;
 }
 
-
 message UserObject {
   string userId = 1;
 }
@@ -42,3 +44,10 @@ message ValidateExpResourceResponse {
   optional string errorMessage = 2;
   int32 expAmount = 3;
 }
+
+message ClaimExpRequest {
+  string userId = 1;
+  int32 expAmount = 2;
+  string expResourceId = 3;
+}
+

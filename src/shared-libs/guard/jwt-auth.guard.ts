@@ -5,13 +5,18 @@ import {
   ExecutionContext,
   HttpException,
   HttpStatus,
+  Inject,
   Injectable,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { AuthServiceClient } from '@root/proto-interface/auth.proto.interface';
+import { RedisService } from '@root/redis/redis.service';
 import { GrpcClient } from '@shared/utilities/grpc-client';
+import Redis from 'ioredis';
 import { firstValueFrom } from 'rxjs';
+
+const userTokenRedisKey = (slugId: string) => `userToken:${slugId}`;
 
 @Injectable()
 export class JwtGuard implements CanActivate {
@@ -20,6 +25,7 @@ export class JwtGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
+     private redisClient: RedisService,
   ) {
     const grpcClient = new GrpcClient<AuthServiceClient>({
       package: 'auth',
@@ -48,18 +54,25 @@ export class JwtGuard implements CanActivate {
       if (!userDataToken.slugId) {
         throw new HttpException('Invalid request', HttpStatus.FORBIDDEN);
       }
+      const redisKey = userTokenRedisKey(userDataToken.slugId);
+      const user = await this.redisClient.get(redisKey);
 
-      const metadata = new Metadata();
-      metadata.add('x-trace-id', request.get('x-trace-id'));
-      const user = await firstValueFrom(
-        this.authService.getUserFromSlug(
-          {
-            slugId: userDataToken.slugId,
-          },
-          metadata,
-        ),
-      );
-      request['user'] = { ...userDataToken, ...user };
+      if (user) {
+        request['user'] = { ...userDataToken, user };
+      } else {
+        const metadata = new Metadata();
+        metadata.add('x-trace-id', request.get('x-trace-id'));
+        const user = await firstValueFrom(
+          this.authService.getUserFromSlug(
+            {
+              slugId: userDataToken.slugId,
+            },
+            metadata,
+          ),
+        );
+        request['user'] = { ...userDataToken, ...user };
+        await this.redisClient.set(redisKey, JSON.stringify(user), 3600);
+      }
 
       return true;
     } catch (_) {

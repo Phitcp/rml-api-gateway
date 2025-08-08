@@ -56,3 +56,12 @@ export class GatewayCreateExpResourceVO implements CreateExpResourceResponse{
   @ApiProperty()
   id: string;
 }
+
+// #region user service dto
+export class ClaimExpRequestDto {
+  @ApiProperty()
+  expAmount: number;
+
+    @ApiProperty()
+  expResourceId: string;
+}

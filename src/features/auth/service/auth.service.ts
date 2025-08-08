@@ -41,7 +41,10 @@ export class AuthService {
     return response;
   }
 
-  async rotateToken(context: AppContext, data: any): Promise<RotateTokenResponse> {
+  async rotateToken(
+    context: AppContext,
+    data: any,
+  ): Promise<RotateTokenResponse> {
     this.appLogger
       .addLogContext(context.traceId)
       .addMsgParam(basename(__filename))
@@ -58,7 +61,10 @@ export class AuthService {
     return response;
   }
 
-  async getTokenForUser(context: AppContext, data: any): Promise<GetUserTokensResponse> {
+  async getTokenForUser(
+    context: AppContext,
+    data: any,
+  ): Promise<GetUserTokensResponse> {
     try {
       this.appLogger
         .addLogContext(context.traceId)
@@ -95,10 +101,7 @@ export class AuthService {
     return response;
   }
 
-  async verifyRegisterOtp(
-    context: AppContext,
-    data: any,
-  ): Promise<any> {
+  async verifyRegisterOtp(context: AppContext, data: any): Promise<any> {
     this.appLogger
       .addLogContext(context.traceId)
       .addMsgParam(basename(__filename))

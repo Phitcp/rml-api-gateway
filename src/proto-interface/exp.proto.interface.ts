@@ -6,11 +6,10 @@ import { CommonLocalization } from '@shared/interfaces/common';
 // source: exp.proto
 
 /* eslint-disable */
-import { Metadata } from "@grpc/grpc-js";
-import { GrpcMethod, GrpcStreamMethod } from "@nestjs/microservices";
-import { Observable } from "rxjs";
+import { Metadata } from '@grpc/grpc-js';
+import { Observable } from 'rxjs';
 
-export const protobufPackage = "exp";
+export const protobufPackage = 'exp';
 
 export interface CreateExpResourceRequest {
   title: CommonLocalization | undefined;
@@ -42,37 +41,26 @@ export interface ValidateExpResourceResponse {
   expAmount: number;
 }
 
-export const EXP_PACKAGE_NAME = "exp";
-
-export interface ExpServiceClient {
-  createExpResource(request: CreateExpResourceRequest, metaData: Metadata): Observable<CreateExpResourceResponse>;
-
-  validateExpResource(request: ValidateExpResourceRequest, metaData: Metadata): Observable<ValidateExpResourceResponse>;
+export interface ClaimExpRequest {
+  userId: string;
+  expAmount: number;
+  expResourceId: string;
 }
 
-export interface ExpServiceController {
+export const EXP_PACKAGE_NAME = 'exp';
+
+export interface ExpServiceClient {
   createExpResource(
     request: CreateExpResourceRequest,
-  ): Promise<CreateExpResourceResponse> | Observable<CreateExpResourceResponse> | CreateExpResourceResponse;
+    metaData: Metadata,
+  ): Observable<CreateExpResourceResponse>;
 
   validateExpResource(
     request: ValidateExpResourceRequest,
-  ): Promise<ValidateExpResourceResponse> | Observable<ValidateExpResourceResponse> | ValidateExpResourceResponse;
+    metaData: Metadata,
+  ): Observable<ValidateExpResourceResponse>;
+
+  claimExp(request: ClaimExpRequest, metaData: Metadata): Observable<void>;
 }
 
-export function ExpServiceControllerMethods() {
-  return function (constructor: Function) {
-    const grpcMethods: string[] = ["createExpResource", "validateExpResource"];
-    for (const method of grpcMethods) {
-      const descriptor: any = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
-      GrpcMethod("ExpService", method)(constructor.prototype[method], method, descriptor);
-    }
-    const grpcStreamMethods: string[] = [];
-    for (const method of grpcStreamMethods) {
-      const descriptor: any = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
-      GrpcStreamMethod("ExpService", method)(constructor.prototype[method], method, descriptor);
-    }
-  };
-}
-
-export const EXP_SERVICE_NAME = "ExpService";
+export const EXP_SERVICE_NAME = 'ExpService';

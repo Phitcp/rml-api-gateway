@@ -9,6 +9,8 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 
 import { ExpResourceAdminController } from './controller/exp-admin.controller';
 import { ExpAdminService } from './service/exp-admin.service';
+import { ExpResourceController } from './controller/exp.controller';
+import { ExpService } from './service/exp.service';
 
 @Module({
   imports: [
@@ -37,7 +39,7 @@ import { ExpAdminService } from './service/exp-admin.service';
       },
     ]),
   ],
-  controllers: [ExpResourceAdminController],
-  providers: [ AppLogger, JwtGuard, ExpAdminService],
+  controllers: [ExpResourceAdminController, ExpResourceController],
+  providers: [ AppLogger, JwtGuard, ExpAdminService, ExpService],
 })
 export class ExpModule {}

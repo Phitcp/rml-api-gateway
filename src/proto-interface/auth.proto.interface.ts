@@ -98,39 +98,4 @@ export interface AuthServiceClient {
   getUserFromSlug(request: GetUserFromSlugRequest, metaData: Metadata): Observable<GetUserFromSlugResponse>;
 }
 
-export interface AuthServiceController {
-  login(request: LoginRequest): Promise<LoginResponse> | Observable<LoginResponse> | LoginResponse;
-
-  rotateToken(
-    request: RotateTokenRequest,
-  ): Promise<RotateTokenResponse> | Observable<RotateTokenResponse> | RotateTokenResponse;
-
-  getUserTokens(
-    request: GetUserTokenQuery,
-  ): Promise<GetUserTokensResponse> | Observable<GetUserTokensResponse> | GetUserTokensResponse;
-
-  registerOtp(
-    request: RegisterOtpRequest,
-  ): Promise<RegisterOtpResponse> | Observable<RegisterOtpResponse> | RegisterOtpResponse;
-
-  verifyRegisterOtp(
-    request: VerifyRegisterOtpRequest,
-  ): Promise<VerifyRegisterOtpResponse> | Observable<VerifyRegisterOtpResponse> | VerifyRegisterOtpResponse;
-}
-
-export function AuthServiceControllerMethods() {
-  return function (constructor: Function) {
-    const grpcMethods: string[] = ["login", "rotateToken", "getUserTokens", "registerOtp", "verifyRegisterOtp"];
-    for (const method of grpcMethods) {
-      const descriptor: any = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
-      GrpcMethod("AuthService", method)(constructor.prototype[method], method, descriptor);
-    }
-    const grpcStreamMethods: string[] = [];
-    for (const method of grpcStreamMethods) {
-      const descriptor: any = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
-      GrpcStreamMethod("AuthService", method)(constructor.prototype[method], method, descriptor);
-    }
-  };
-}
-
 export const AUTH_SERVICE_NAME = "AuthService";
