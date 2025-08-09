@@ -11,7 +11,6 @@ import { AppConfigModule } from './config/config.module';
 import { CharacterModule } from '@feature/character/character.module';
 import { ExpModule } from '@feature/exp/exp.module';
 import { RedisModule } from './redis/redis.module';
-import { RedisService } from './redis/redis.service';
 
 @Module({
   imports: [AppConfigModule, AuthModule, CharacterModule, ExpModule, RedisModule],

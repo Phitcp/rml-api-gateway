@@ -13,12 +13,10 @@ import { RbacGuard, RbacMeta } from '@shared/guard/rbac.guard';
 import { JwtGuard } from '@shared/guard/jwt-auth.guard';
 import {
   ClaimExpRequestDto,
-
 } from '../dto/exp.dto';
 
 @ApiTags('Exp Resource')
 @Controller('exp')
-@UseGuards(RbacGuard)
 @UseGuards(JwtGuard)
 export class ExpResourceController {
   constructor(private readonly expService: ExpService) {}

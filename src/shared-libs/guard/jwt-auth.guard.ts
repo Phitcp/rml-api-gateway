@@ -25,7 +25,7 @@ export class JwtGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
-     private redisClient: RedisService,
+    private redisClient: RedisService,
   ) {
     const grpcClient = new GrpcClient<AuthServiceClient>({
       package: 'auth',
@@ -58,7 +58,7 @@ export class JwtGuard implements CanActivate {
       const user = await this.redisClient.get(redisKey);
 
       if (user) {
-        request['user'] = { ...userDataToken, user };
+        request['user'] = { ...userDataToken, ...user };
       } else {
         const metadata = new Metadata();
         metadata.add('x-trace-id', request.get('x-trace-id'));
@@ -71,7 +71,7 @@ export class JwtGuard implements CanActivate {
           ),
         );
         request['user'] = { ...userDataToken, ...user };
-        await this.redisClient.set(redisKey, JSON.stringify(user), 3600);
+        await this.redisClient.set(redisKey, user, 3600);
       }
 
       return true;
