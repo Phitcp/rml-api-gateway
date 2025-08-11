@@ -115,4 +115,19 @@ export class AuthService {
     this.appLogger.log('Did verifyRegisterOtp');
     return response;
   }
+
+  async getUserFromSlug(context: AppContext, slug: string): Promise<any> {
+    this.appLogger
+      .addLogContext(context.traceId)
+      .addMsgParam(basename(__filename))
+      .addMsgParam('getUserFromSlug');
+    this.appLogger.log('Will getUserFromSlug');
+    const metadata = new Metadata();
+    metadata.add('x-trace-id', context.traceId);
+    const response = await firstValueFrom(
+      this.authService.getUserFromSlug({ slugId: slug }, metadata),
+    );
+    this.appLogger.log('Did getUserFromSlug');
+    return response;
+  }
 }

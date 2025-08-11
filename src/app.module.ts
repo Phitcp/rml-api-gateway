@@ -11,9 +11,10 @@ import { AppConfigModule } from './config/config.module';
 import { CharacterModule } from '@feature/character/character.module';
 import { ExpModule } from '@feature/exp/exp.module';
 import { RedisModule } from './redis/redis.module';
+import { WebSocketModule } from '@feature/websocket/websocket.module';
 
 @Module({
-  imports: [AppConfigModule, AuthModule, CharacterModule, ExpModule, RedisModule],
+  imports: [AppConfigModule, AuthModule, CharacterModule, ExpModule, RedisModule, WebSocketModule],
   controllers: [AppController],
   providers: [
     AppService,

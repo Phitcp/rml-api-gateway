@@ -8,7 +8,8 @@ import { ValidationPipe } from '@nestjs/common';
 const swaggerAlias = 'explorer';
 async function bootstrap() {
   const appPort = process.env.PORT ?? 3000;
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { cors: true });
+  
   app.useGlobalPipes(new ValidationPipe());
 
   const config = new DocumentBuilder()
@@ -20,6 +21,7 @@ async function bootstrap() {
   SwaggerModule.setup(swaggerAlias, app, document);
 
   const logger = app.get(AppLogger);
+
   await app.listen(appPort);
   logger
     .addLogContext('App Start Successfully')

@@ -13,7 +13,6 @@ import { JwtService } from '@nestjs/jwt';
 import { AuthServiceClient } from '@root/proto-interface/auth.proto.interface';
 import { RedisService } from '@root/redis/redis.service';
 import { GrpcClient } from '@shared/utilities/grpc-client';
-import Redis from 'ioredis';
 import { firstValueFrom } from 'rxjs';
 
 const userTokenRedisKey = (slugId: string) => `userToken:${slugId}`;
