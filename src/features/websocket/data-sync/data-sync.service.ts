@@ -23,14 +23,16 @@ export class DataSyncService {
 
     subscriber.on('message', async (channel, message: string) => {
       try {
+        console.log('Send sub message')
         const { context, payload } = JSON.parse(message);
-        const { userId, dataType, updatedData } = payload;
-        const isUserConnected = await this.isUserConnected(userId);
+        const { id, dataType, updatedData } = payload;
+
+        const isUserConnected = await this.isUserConnected(payload.id);
         if (isUserConnected) {
-          this.syncUserData(userId, dataType, updatedData);
-          this.resetUserSocketSession(userId);
+          this.syncUserData(id, dataType, payload);
+          this.resetUserSocketSession(id);
         } else {
-          const sockets = await this.server.in(`user:${userId}`).fetchSockets();
+          const sockets = await this.server.in(`user:${id}`).fetchSockets();
           sockets.forEach((socket) => socket.disconnect(true));
         }
       } catch (error) {
@@ -80,7 +82,7 @@ export class DataSyncService {
       timestamp: new Date(),
     });
 
-    this.logger.log(`Synced ${dataType} data to user ${userId}`);
+    this.logger.log(`Synced data to user ${userId}`);
   }
 
   // #region helper function

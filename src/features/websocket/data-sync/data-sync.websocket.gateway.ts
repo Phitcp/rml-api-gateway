@@ -45,7 +45,7 @@ export class DataSyncGateway
   ) {}
 
   async afterInit() {
-    this.dataSyncService.setServer(this.server);
+    await this.dataSyncService.setServer(this.server);
     await this.dataSyncService.subscribeToSyncEvent();
     await this.dataSyncService.subscribeToConnectionExpiration();
     this.logger.log('DataSyncGateway initialized and subscriptions set up');
@@ -81,6 +81,11 @@ export class DataSyncGateway
         return;
       }
 
+      if(!token.startsWith('Bearer ')) {
+        client.disconnect();
+        this.logger.error('Invalid token format for WebSocket connection');
+        return;
+      }
       const decoded = this.jwtService.verify(token.replace('Bearer ', ''));
       this.attachTraceId(client);
       const context = this.getContext(client);

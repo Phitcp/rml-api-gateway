@@ -165,6 +165,7 @@
         let reconnectAttempts = 0;
         const maxReconnectAttempts = 5;
         const reconnectInterval = 3000;
+        let isConnecting = false; // Prevent multiple connection attempts
 
         function log(message, type = 'info') {
             const logElement = document.getElementById('log');
@@ -192,7 +193,21 @@
             document.getElementById('expireBtn').disabled = !connected;
         }
 
+        function cleanupSocket() {
+            if (socket) {
+                // Remove all event listeners to prevent duplicates
+                socket.removeAllListeners();
+                socket.disconnect();
+                socket = null;
+            }
+        }
+
         function connectWebSocket() {
+            if (isConnecting) {
+                log('⚠️ Already connecting, please wait...', 'error');
+                return;
+            }
+
             const serverUrl = document.getElementById('serverUrl').value;
             const authToken = document.getElementById('authToken').value;
 
@@ -207,6 +222,11 @@
             }
 
             try {
+                isConnecting = true;
+                
+                // Clean up any existing connection
+                cleanupSocket();
+
                 // Extract base URL (remove ws:// and path)
                 const baseUrl = serverUrl.replace('ws://', 'http://').replace('/sync', '');
                 
@@ -217,7 +237,14 @@
                     auth: {
                         token: authToken
                     },
+                    extraHeaders: {
+                        'Authorization': authToken
+                    },
                     transports: ['websocket', 'polling'],
+                    timeout: 5000,
+                    forceNew: true,
+                    autoConnect: true
+                }, {
                     timeout: 5000,
                     forceNew: true
                 });
@@ -227,6 +254,7 @@
                     updateConnectionStatus('connected', '🟢 Connected');
                     updateButtons(true);
                     reconnectAttempts = 0;
+                    isConnecting = false;
                 });
 
                 socket.on('dataSync', function(data) {
@@ -249,21 +277,27 @@
 
                 socket.on('error', function(error) {
                     log(`💥 Socket error: ${JSON.stringify(error)}`, 'error');
+                    isConnecting = false;
                 });
 
                 socket.on('disconnect', function(reason) {
                     log(`❌ Socket disconnected. Reason: ${reason}`);
                     updateConnectionStatus('disconnected', '🔴 Disconnected');
                     updateButtons(false);
+                    isConnecting = false;
 
                     // Auto-reconnect logic for certain disconnect reasons
                     if (reason === 'io server disconnect') {
                         // Server initiated disconnect, don't auto-reconnect
                         log('Server disconnected the socket. Manual reconnection required.', 'error');
-                    } else if (reconnectAttempts < maxReconnectAttempts) {
+                    } else if (reconnectAttempts < maxReconnectAttempts && !isConnecting) {
                         reconnectAttempts++;
                         log(`🔄 Attempting to reconnect... (${reconnectAttempts}/${maxReconnectAttempts})`);
-                        setTimeout(connectWebSocket, reconnectInterval);
+                        setTimeout(() => {
+                            if (!socket || !socket.connected) {
+                                connectWebSocket();
+                            }
+                        }, reconnectInterval);
                     } else {
                         log('❌ Max reconnection attempts reached', 'error');
                     }
@@ -271,6 +305,7 @@
 
                 socket.on('connect_error', function(error) {
                     log(`💥 Connection error: ${error.message}`, 'error');
+                    isConnecting = false;
                     if (error.message.includes('401') || error.message.includes('Authentication')) {
                         log('❌ Authentication failed. Please check your token.', 'error');
                     }
@@ -278,16 +313,17 @@
 
             } catch (error) {
                 log(`💥 Failed to create Socket.IO connection: ${error}`, 'error');
+                isConnecting = false;
             }
         }
 
         function disconnectWebSocket() {
             if (socket) {
-                socket.disconnect();
-                socket = null;
+                cleanupSocket();
                 log('🔌 Socket.IO disconnected manually');
                 updateConnectionStatus('disconnected', '🔴 Disconnected');
                 updateButtons(false);
+                isConnecting = false;
             }
         }
 
@@ -310,8 +346,6 @@
         }
 
         function handleDataSync(data) {
-            log(`🔄 Data sync received: ${data.dataType || data.type}`, 'success');
-            
             const dataDisplay = document.getElementById('dataDisplay');
             dataDisplay.innerHTML = `
                 <h4>Last Update: ${new Date(data.timestamp).toLocaleString()}</h4>
