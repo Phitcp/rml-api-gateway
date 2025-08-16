@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { DataSyncGateway } from './gateway/websocket.gateway';
+import { DataSyncGateway } from './data-sync/data-sync.websocket.gateway';
 import { AppConfigModule } from '@app/config/config.module';
-import { AuthService } from '@feature/auth/service/auth.service';
+
 import { AppLogger } from '@shared/logger';
+import { DataSyncService } from './data-sync/data-sync.service';
+import { AuthModule } from '@feature/auth/auth.module';
 
 @Module({
   imports: [
@@ -21,8 +23,9 @@ import { AppLogger } from '@shared/logger';
         };
       },
     }),
+    AuthModule
   ],
-  providers: [DataSyncGateway, AuthService, AppLogger],
+  providers: [DataSyncGateway, DataSyncService, AppLogger],
   exports: [DataSyncGateway],
 })
 export class WebSocketModule {}

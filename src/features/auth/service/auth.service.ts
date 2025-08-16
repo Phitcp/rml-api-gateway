@@ -11,6 +11,8 @@ import {
 } from '@root/proto-interface/auth.proto.interface';
 import { firstValueFrom } from 'rxjs';
 import { Metadata } from '@grpc/grpc-js'; // Use require to avoid issues with Metadata not being recognized in the import statement
+import { GatewayRotateTokenRequestDto } from '../dto/auth.dto';
+import { JwtGuard } from '@shared/guard/jwt-auth.guard';
 @Injectable()
 export class AuthService {
   private authService: AuthServiceClient;
@@ -43,19 +45,22 @@ export class AuthService {
 
   async rotateToken(
     context: AppContext,
-    data: any,
+    payload: GatewayRotateTokenRequestDto
   ): Promise<RotateTokenResponse> {
     this.appLogger
       .addLogContext(context.traceId)
       .addMsgParam(basename(__filename))
       .addMsgParam('rotateToken');
-    console.log(data);
     this.appLogger.log('Will rotateToken');
     const metadata = new Metadata();
     metadata.add('x-trace-id', context.traceId);
 
     const response = await firstValueFrom(
-      this.authService.rotateToken(data, metadata),
+      this.authService.rotateToken({
+        userId: context.user.userId,
+        sessionId: context.sessionId,
+        refreshToken: context.refreshToken ?? '',
+      }, metadata),
     );
     this.appLogger.log('Did rotateToken');
     return response;
@@ -128,6 +133,25 @@ export class AuthService {
       this.authService.getUserFromSlug({ slugId: slug }, metadata),
     );
     this.appLogger.log('Did getUserFromSlug');
+    return response;
+  }
+
+  async logOut(context: AppContext) {
+    this.appLogger
+      .addLogContext(context.traceId)
+      .addMsgParam(basename(__filename))
+      .addMsgParam('logOut');
+    this.appLogger.log('Will logOut');
+    const metadata = new Metadata();
+    metadata.add('x-trace-id', context.traceId);
+    const response = await firstValueFrom(
+      this.authService.logOut({
+        userId: context.user.userId,
+        sessionId: context.sessionId,
+        accessToken: context.token.replace('Bearer ', ''),
+      }, metadata),
+    );
+    this.appLogger.log('Did logOut');
     return response;
   }
 }

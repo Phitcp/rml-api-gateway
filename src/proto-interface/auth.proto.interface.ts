@@ -50,6 +50,17 @@ export interface LoginResponse {
   role: string;
 }
 
+export interface logOutRequest {
+  userId: string;
+  sessionId: string;
+  accessToken: string
+}
+
+export interface logOutResponse {
+  isSuccess: boolean;
+  message: string;
+}
+
 export interface RotateTokenRequest {
   userId: string;
   refreshToken: string;
@@ -96,6 +107,8 @@ export interface AuthServiceClient {
   verifyRegisterOtp(request: VerifyRegisterOtpRequest, metaData: Metadata): Observable<VerifyRegisterOtpResponse>;
 
   getUserFromSlug(request: GetUserFromSlugRequest, metaData: Metadata): Observable<GetUserFromSlugResponse>;
-}
+
+  logOut(request: logOutRequest, metaData: Metadata): Observable<logOutResponse>;
+  }
 
 export const AUTH_SERVICE_NAME = "AuthService";

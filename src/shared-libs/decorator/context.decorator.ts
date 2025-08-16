@@ -6,20 +6,30 @@ export interface UserContext {
 export interface AppContext {
   traceId: string;
   token: string;
-  user?: UserContext;
+  sessionId: string;
+  refreshToken?: string;
+  user: UserContext;
 }
 
+export interface WebsocketContext {
+  user: UserContext;
+  token: string;
+}
 export const Context = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): AppContext => {
     const request = ctx.switchToHttp().getRequest();
 
     const token = request.get('Authorization');
     const traceId = request.get('x-trace-id');
+    const sessionId = request.get('x-session-id');
+    const refreshToken = request.get('RefreshToken');
     const user = request.user;
     return {
       traceId,
       token,
-      user: user ? { userId: user.userId } : undefined,
+      sessionId,
+      refreshToken,
+      user: { userId: user?.userId || '' },
     };
   },
 );

@@ -1,3 +1,4 @@
+import { DataSyncService } from './data-sync.service';
 import { RedisService } from '@root/redis/redis.service';
 import {
   WebSocketGateway,
@@ -15,8 +16,10 @@ import { AppLogger } from '@shared/logger';
 import { AppContext } from '@shared/decorator/context.decorator';
 import { v4 as idGen } from 'uuid';
 import { GetUserFromSlugResponse } from '@root/proto-interface/auth.proto.interface';
-
-const userTokenRedisKey = (slugId: string) => `userToken:${slugId}`;
+import {
+  ConnectedUserWs_Prefix,
+  AccessToken_Prefix,
+} from '@root/redis/constant';
 
 interface AuthenticatedSocket extends Socket {
   userId: string;
@@ -33,22 +36,28 @@ export class DataSyncGateway
   @WebSocketServer()
   server: Server;
 
-  private connectedUsers = new Map<string, string>(); // socketId -> userId
   constructor(
     private jwtService: JwtService,
     private authService: AuthService,
     private logger: AppLogger,
     private redisService: RedisService,
+    private dataSyncService: DataSyncService,
   ) {}
-  afterInit(server: Server) {
-    this.logger.log('🧪 DataSyncGateway initialized successfully');
+
+  async afterInit() {
+    this.dataSyncService.setServer(this.server);
+    await this.dataSyncService.subscribeToSyncEvent();
+    await this.dataSyncService.subscribeToConnectionExpiration();
+    this.logger.log('DataSyncGateway initialized and subscriptions set up');
   }
 
+  // #region connection
   private getContext(client: AuthenticatedSocket): AppContext {
     return {
       traceId: client.handshake.headers['x-trace-id'] as string,
       user: client.user,
       token: client.handshake.headers['authorization'] as string,
+      sessionId: client.handshake.headers['x-session-id'] as string,
     };
   }
 
@@ -62,32 +71,30 @@ export class DataSyncGateway
       .log(`Websocket connect: ${client.id}`);
   }
 
-  async handleConnection(
-    client: AuthenticatedSocket,
-  ) {
+  async handleConnection(client: AuthenticatedSocket) {
     try {
       this.logger.log(`🔌 New connection attempt: ${client.id}`);
-      const token = client.handshake.headers?.authorization as string;
+      const token = client.handshake.auth.token as string;
       if (!token) {
         client.disconnect();
+        this.logger.error('No token provided for WebSocket connection');
         return;
       }
 
+      const decoded = this.jwtService.verify(token.replace('Bearer ', ''));
       this.attachTraceId(client);
       const context = this.getContext(client);
 
-      const decoded = this.jwtService.verify(token.replace('Bearer ', ''));
-      const redisKey = userTokenRedisKey(decoded.slugId);
-      const cacheUser =
-        await this.redisService.get<GetUserFromSlugResponse>(redisKey);
+      // authentication session
+      const redisKey = `${AccessToken_Prefix}${decoded.slugId}`;
 
-      let user: GetUserFromSlugResponse;
-      if (cacheUser) {
-        user = cacheUser;
-      } else {
-        user = await this.authService.getUserFromSlug(context, decoded.slugId);
-        await this.redisService.set(redisKey, user, 3600);
-      }
+      const user = await this.redisService.getOrSet<GetUserFromSlugResponse>(
+        redisKey,
+        async () =>
+          await this.authService.getUserFromSlug(context, decoded.slugId),
+        3600,
+      );
+
       if (!user) {
         client.disconnect();
         return;
@@ -95,9 +102,14 @@ export class DataSyncGateway
       client.userId = user.userId;
       client.user = user;
 
-      this.connectedUsers.set(client.id, client.userId);
       client.join(`user:${client.userId}`);
 
+      // Websocket session - Make this short to reduce the connection load on server
+      this.redisService.set(
+        `${ConnectedUserWs_Prefix}${user.userId}`,
+        true,
+        3600,
+      );
       this.logger.log(`User ${client.userId} connected for data sync`);
     } catch (error) {
       this.logger.error('WebSocket authentication failed');
@@ -107,43 +119,16 @@ export class DataSyncGateway
 
   handleDisconnect(client: AuthenticatedSocket) {
     if (client.userId) {
-      this.connectedUsers.delete(client.id);
+      this.redisService.del(`${ConnectedUserWs_Prefix}${client.userId}`);
+      this.server.to(`user:${client.userId}`).emit('disconnected', {
+        message: 'You have been disconnected from the sync service.',
+      });
       this.logger.log(`User ${client.userId} disconnected from sync`);
     }
   }
 
-  // Optional: Handle ping for connection health
   @SubscribeMessage('ping')
   handlePing(@ConnectedSocket() client: AuthenticatedSocket) {
     client.emit('pong', { timestamp: new Date() });
-  }
-
-  // Main method: Broadcast data changes to user
-  syncUserData(userId: string, dataType: string, updatedData: any) {
-    this.server.to(`user:${userId}`).emit('dataSync', {
-      type: dataType,
-      data: updatedData,
-      timestamp: new Date(),
-    });
-
-    this.logger.log(`Synced ${dataType} data to user ${userId}`);
-  }
-
-  // Sync specific data types
-  syncExpData(userId: string, expData: any) {
-    this.syncUserData(userId, 'exp', expData);
-  }
-
-  syncCharacterData(userId: string, characterData: any) {
-    this.syncUserData(userId, 'character', characterData);
-  }
-
-  syncUserProfile(userId: string, profileData: any) {
-    this.syncUserData(userId, 'profile', profileData);
-  }
-
-  // Check if user is connected (for optimization)
-  isUserConnected(userId: string): boolean {
-    return Array.from(this.connectedUsers.values()).includes(userId);
   }
 }

@@ -33,4 +33,19 @@ export class RedisService {
   async del(key: string): Promise<void> {
     await this.redisClient.del(key);
   }
+
+  get client(): Redis {
+    return this.redisClient;
+  }
+
+  async getOrSet<T>(key: string, callback: () => Promise<T>, ttl?: number): Promise<T> {
+    const cachedData = await this.get<T>(key);
+    if (cachedData) {
+      return cachedData;
+    }
+
+    const freshData = await callback();
+    await this.set(key, freshData, ttl);
+    return freshData;
+  }
 }

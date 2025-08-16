@@ -50,5 +50,6 @@ import { AppModule } from '@root/app.module';
   ],
   controllers: [AuthController, RbacController],
   providers: [ AppLogger, JwtGuard, AuthService, RbacService],
+  exports: [AuthService]
 })
 export class AuthModule {}

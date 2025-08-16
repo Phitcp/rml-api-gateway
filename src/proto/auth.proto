@@ -9,6 +9,7 @@ service AuthService {
   rpc RegisterOtp(RegisterOtpRequest) returns (RegisterOtpResponse);
   rpc VerifyRegisterOtp(VerifyRegisterOtpRequest) returns (VerifyRegisterOtpResponse);
   rpc GetUserFromSlug(GetUserFromSlugRequest) returns (GetUserFromSlugResponse);
+  rpc LogOut(LogOutRequest) returns (LogOutResponse);
 }
 
 message RegisterOtpRequest {
@@ -79,4 +80,15 @@ message GetUserFromSlugResponse {
   string username = 2;
   string role = 3;
   string email = 4;
+}
+
+message LogOutRequest {
+  string userId = 1;
+  string sessionId = 2;
+  string accessToken = 3;
+}
+
+message LogOutResponse {
+  bool isSuccess = 1;
+  string message = 2;
 }

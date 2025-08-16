@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Data Sync Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .expired {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #007bff;
+            background-color: white;
+        }
+        .log-error {
+            border-left-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .log-success {
+            border-left-color: #28a745;
+            background-color: #d4edda;
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .data-display {
+            background-color: #e7f3ff;
+            border: 1px solid #bee5eb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 WebSocket Data Sync Test</h1>
+        
+        <!-- Connection Configuration -->
+        <div class="input-group">
+            <label for="serverUrl">Server URL:</label>
+            <input type="text" id="serverUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+        </div>
+        
+        <div class="input-group">
+            <label for="authToken">Auth Token:</label>
+            <input type="text" id="authToken" placeholder="Bearer your-jwt-token-here">
+        </div>
+        
+        <!-- Connection Status -->
+        <div id="connectionStatus" class="status disconnected">
+            📡 Disconnected
+        </div>
+        
+        <!-- Control Buttons -->
+        <div>
+            <button onclick="connectWebSocket()" id="connectBtn">Connect</button>
+            <button onclick="disconnectWebSocket()" id="disconnectBtn" disabled>Disconnect</button>
+            <button onclick="sendPing()" id="pingBtn" disabled>Send Ping</button>
+            <button onclick="sendUserActivity()" id="activityBtn" disabled>Send User Activity</button>
+            <button onclick="clearLog()" id="clearBtn">Clear Log</button>
+        </div>
+        
+        <!-- Test Buttons for Simulating Backend Events -->
+        <div style="margin-top: 20px;">
+            <h3>🧪 Simulate Backend Events (for testing)</h3>
+            <button onclick="simulateExpUpdate()" id="expBtn" disabled>Simulate EXP Update</button>
+            <button onclick="simulateCharacterUpdate()" id="charBtn" disabled>Simulate Character Update</button>
+            <button onclick="simulateSessionExpiry()" id="expireBtn" disabled>Simulate Session Expiry</button>
+        </div>
+        
+        <!-- Real-time Data Display -->
+        <div class="data-display">
+            <h3>📊 Real-time Data</h3>
+            <div id="dataDisplay">
+                <p>No data received yet...</p>
+            </div>
+        </div>
+        
+        <!-- Activity Log -->
+        <div>
+            <h3>📋 Activity Log</h3>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <!-- Add Socket.IO client library -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
+    <script>
+        let socket = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        const reconnectInterval = 3000;
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : ''}`;
+            logEntry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateConnectionStatus(status, message) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.className = `status ${status}`;
+            statusElement.textContent = message;
+        }
+
+        function updateButtons(connected) {
+            document.getElementById('connectBtn').disabled = connected;
+            document.getElementById('disconnectBtn').disabled = !connected;
+            document.getElementById('pingBtn').disabled = !connected;
+            document.getElementById('activityBtn').disabled = !connected;
+            document.getElementById('expBtn').disabled = !connected;
+            document.getElementById('charBtn').disabled = !connected;
+            document.getElementById('expireBtn').disabled = !connected;
+        }
+
+        function connectWebSocket() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const authToken = document.getElementById('authToken').value;
+
+            if (!serverUrl) {
+                log('Please enter a server URL', 'error');
+                return;
+            }
+
+            if (!authToken) {
+                log('Please enter an auth token', 'error');
+                return;
+            }
+
+            try {
+                // Extract base URL (remove ws:// and path)
+                const baseUrl = serverUrl.replace('ws://', 'http://').replace('/sync', '');
+                
+                log(`🔌 Connecting to ${baseUrl} with namespace /sync...`);
+
+                // Connect using Socket.IO with authentication
+                socket = io(`${baseUrl}/sync`, {
+                    auth: {
+                        token: authToken
+                    },
+                    transports: ['websocket', 'polling'],
+                    timeout: 5000,
+                    forceNew: true
+                });
+
+                socket.on('connect', function() {
+                    log('✅ Socket.IO connected successfully!', 'success');
+                    updateConnectionStatus('connected', '🟢 Connected');
+                    updateButtons(true);
+                    reconnectAttempts = 0;
+                });
+
+                socket.on('dataSync', function(data) {
+                    log(`📨 Data sync received: ${JSON.stringify(data, null, 2)}`, 'success');
+                    handleDataSync(data);
+                });
+
+                socket.on('sessionExpired', function(data) {
+                    log(`⏰ Session expired: ${JSON.stringify(data)}`, 'error');
+                    handleSessionExpired(data);
+                });
+
+                socket.on('pong', function(data) {
+                    log(`💓 Pong received: ${JSON.stringify(data)}`, 'success');
+                });
+
+                socket.on('activityConfirmed', function(data) {
+                    log(`✅ Activity confirmed: ${JSON.stringify(data)}`, 'success');
+                });
+
+                socket.on('error', function(error) {
+                    log(`💥 Socket error: ${JSON.stringify(error)}`, 'error');
+                });
+
+                socket.on('disconnect', function(reason) {
+                    log(`❌ Socket disconnected. Reason: ${reason}`);
+                    updateConnectionStatus('disconnected', '🔴 Disconnected');
+                    updateButtons(false);
+
+                    // Auto-reconnect logic for certain disconnect reasons
+                    if (reason === 'io server disconnect') {
+                        // Server initiated disconnect, don't auto-reconnect
+                        log('Server disconnected the socket. Manual reconnection required.', 'error');
+                    } else if (reconnectAttempts < maxReconnectAttempts) {
+                        reconnectAttempts++;
+                        log(`🔄 Attempting to reconnect... (${reconnectAttempts}/${maxReconnectAttempts})`);
+                        setTimeout(connectWebSocket, reconnectInterval);
+                    } else {
+                        log('❌ Max reconnection attempts reached', 'error');
+                    }
+                });
+
+                socket.on('connect_error', function(error) {
+                    log(`💥 Connection error: ${error.message}`, 'error');
+                    if (error.message.includes('401') || error.message.includes('Authentication')) {
+                        log('❌ Authentication failed. Please check your token.', 'error');
+                    }
+                });
+
+            } catch (error) {
+                log(`💥 Failed to create Socket.IO connection: ${error}`, 'error');
+            }
+        }
+
+        function disconnectWebSocket() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                log('🔌 Socket.IO disconnected manually');
+                updateConnectionStatus('disconnected', '🔴 Disconnected');
+                updateButtons(false);
+            }
+        }
+
+        function sendPing() {
+            if (socket && socket.connected) {
+                socket.emit('ping');
+                log('📤 Ping sent via Socket.IO');
+            } else {
+                log('❌ Socket.IO not connected', 'error');
+            }
+        }
+
+        function sendUserActivity() {
+            if (socket && socket.connected) {
+                socket.emit('userActivity');
+                log('📤 User activity sent via Socket.IO');
+            } else {
+                log('❌ Socket.IO not connected', 'error');
+            }
+        }
+
+        function handleDataSync(data) {
+            log(`🔄 Data sync received: ${data.dataType || data.type}`, 'success');
+            
+            const dataDisplay = document.getElementById('dataDisplay');
+            dataDisplay.innerHTML = `
+                <h4>Last Update: ${new Date(data.timestamp).toLocaleString()}</h4>
+                <p><strong>Type:</strong> ${data.type}</p>
+                <pre>${JSON.stringify(data.data, null, 2)}</pre>
+            `;
+        }
+
+        function handleSessionExpired(data) {
+            log(`⏰ Session expired: ${data.message}`, 'error');
+            updateConnectionStatus('expired', '⏰ Session Expired');
+            
+            // Auto-reconnect after session expiry
+            setTimeout(() => {
+                log('🔄 Attempting to reconnect after session expiry...');
+                connectWebSocket();
+            }, 2000);
+        }
+
+        // Simulate backend events for testing
+        function simulateExpUpdate() {
+            const authToken = document.getElementById('authToken').value;
+            fetch('http://localhost:3000/exp/claim', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authToken
+                },
+                body: JSON.stringify({
+                    expResourceId: '1a49a1fb-6b19-417e-8363-22e5261b2384',
+                    expAmount: 100
+                })
+            })
+            // // Simulate receiving this from server
+            // handleDataSync(mockData);
+        }
+
+        function simulateCharacterUpdate() {
+            const mockData = {
+                type: 'dataSync',
+                dataType: 'character',
+                data: {
+                    health: Math.floor(Math.random() * 100) + 1,
+                    mana: Math.floor(Math.random() * 100) + 1,
+                    strength: Math.floor(Math.random() * 50) + 10
+                },
+                timestamp: new Date().toISOString()
+            };
+            
+            handleDataSync(mockData);
+        }
+
+        function simulateSessionExpiry() {
+            const mockData = {
+                type: 'sessionExpired',
+                message: 'Your session has expired. Please reconnect.',
+                timestamp: new Date().toISOString()
+            };
+            
+            handleSessionExpired(mockData);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            document.getElementById('dataDisplay').innerHTML = '<p>No data received yet...</p>';
+        }
+
+        // Initialize
+        log('🚀 WebSocket test page loaded. Enter your server details and click Connect.');
+    </script>
+</body>
+</html>

@@ -108,11 +108,7 @@ export class GatewayLoginResponseDto implements LoginResponse {
 export class GatewayRotateTokenRequestDto implements Partial<RotateTokenRequest> {
   @ApiProperty()
   @IsNotEmpty()
-  refreshToken: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
-  sessionId: string;
+  userId: string;
 }
 
 export class GatewayLogOutRequestDto {
@@ -143,4 +139,10 @@ export class GatewayRotateTokenResponseDto {
   @ApiProperty()
   @IsString()
   sessionId: string;
+}
+
+export class GatewayLogOutResponseDto {
+  @ApiProperty()
+  @IsString()
+  message: string;
 }

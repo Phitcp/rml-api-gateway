@@ -20,7 +20,7 @@ import {
   GatewayRotateTokenResponseDto,
   GatewayVerifyRegisterOtpRequest,
 } from '../dto/auth.dto';
-import { JwtGuard } from '@shared/guard/jwt-auth.guard';
+import { JwtGuard, RotateTokenMeta } from '@shared/guard/jwt-auth.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -83,6 +83,11 @@ export class AuthController {
     return await this.authService.login(context, loginDto);
   }
 
+  
+  @RotateTokenMeta({
+    isRotateToken: true,
+  })
+  @UseGuards(JwtGuard)
   @ApiOperation({ summary: 'Rotate refresh token' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -109,5 +114,14 @@ export class AuthController {
     @Context() context: AppContext,
   ) {
     return await this.authService.getTokenForUser(context, query);
+  }
+
+  @UseGuards(JwtGuard)
+  @ApiOperation({ summary: 'User logout' })
+  @Post('/logout')
+  async logOut(
+    @Context() context: AppContext,
+  ) {
+    return await this.authService.logOut(context);
   }
 }
