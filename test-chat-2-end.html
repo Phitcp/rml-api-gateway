@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat 2-End Test</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .setup-section {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .input-group { 
+            margin: 15px 0; 
+        }
+        .input-group label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: 600;
+            color: #333;
+        }
+        .input-group input { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #e1e5e9; 
+            border-radius: 8px; 
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status-bar {
+            padding: 15px 20px;
+            font-weight: 600;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        .status-ready {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .chat-container {
+            display: none;
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-title {
+            font-weight: 600;
+            color: #333;
+        }
+        .leave-btn {
+            background: #dc3545;
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+        }
+        .message.sent {
+            justify-content: flex-end;
+        }
+        .message.received {
+            justify-content: flex-start;
+        }
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+        }
+        .message.sent .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .message.received .message-bubble {
+            background: white;
+            color: #333;
+            border: 1px solid #e1e5e9;
+        }
+        .message-info {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+        .message-status {
+            font-size: 10px;
+            opacity: 0.8;
+            margin-top: 2px;
+            font-style: italic;
+        }
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 25px;
+            font-size: 14px;
+        }
+        .chat-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .send-btn {
+            border-radius: 25px;
+            padding: 12px 20px;
+        }
+        .empty-chat {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            margin: 50px 0;
+        }
+        .typing-indicator {
+            padding: 10px 20px;
+            font-style: italic;
+            color: #6c757d;
+            font-size: 12px;
+            background: #f8f9fa;
+            display: none;
+        }
+        .log-section {
+            padding: 20px;
+            border-top: 1px solid #eee;
+        }
+        .log {
+            height: 150px;
+            overflow-y: auto;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f8f9fa;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px;
+        }
+        .log-error { color: #dc3545; }
+        .log-success { color: #28a745; }
+        .log-info { color: #17a2b8; }
+        .connection-hint {
+            font-size: 12px;
+            color: #6c757d;
+            font-style: italic;
+            margin-top: 5px;
+        }
+        .ws-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .ws-ready { background: #ffc107; }
+        .ws-connected { background: #28a745; }
+        .ws-disconnected { background: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>💬 Chat 2-End Test</h1>
+            <p>HTTP History → WebSocket on First Message → Real-time Chat</p>
+        </div>
+
+        <!-- Setup Section -->
+        <div class="setup-section">
+            <div class="input-group">
+                <label for="serverUrl">Server URL:</label>
+                <input type="text" id="serverUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+            </div>
+            
+            <div class="input-group">
+                <label for="authToken">Auth Token:</label>
+                <input type="text" id="authToken" value="" placeholder="Bearer your-jwt-token-here">
+            </div>
+            
+            <div class="input-group">
+                <label for="mySlugId">My Slug ID:</label>
+                <input type="text" id="mySlugId" value="" placeholder="Enter your slug ID (e.g., F6X9XPVD)">
+                <div class="connection-hint">🆔 Used to identify your messages vs received messages</div>
+            </div>
+            
+            <div class="input-group">
+                <label for="receiverId">Chat with User ID:</label>
+                <input type="text" id="receiverId" value="" placeholder="Enter user ID to chat with">
+                <div class="connection-hint">💡 WebSocket connects only when you send first message</div>
+            </div>
+            
+            <button class="btn" onclick="startChat()">Start Chat & Fetch History</button>
+        </div>
+
+        <!-- Status Bar -->
+        <div id="statusBar" class="status-bar status-ready">
+            <span class="ws-status ws-ready"></span>
+            Ready - HTTP history loaded, WebSocket on first message
+        </div>
+
+        <!-- Chat Interface -->
+        <div id="chatContainer" class="chat-container">
+            <div class="chat-header">
+                <div class="chat-title" id="chatTitle">Chat</div>
+                <button class="btn leave-btn" onclick="leaveChat()">Leave Chat</button>
+            </div>
+            
+            <div id="chatMessages" class="chat-messages">
+                <div id="emptyChatMessage" class="empty-chat">
+                    🚀 Start your conversation! Send your first message below.
+                </div>
+            </div>
+            
+            <div id="typingIndicator" class="typing-indicator">
+                User is typing...
+            </div>
+            
+            <div class="chat-input-container">
+                <input type="text" id="messageInput" class="chat-input" 
+                       placeholder="Type your message..." 
+                       onkeypress="handleMessageKeyPress(event)"
+                       oninput="handleTyping()">
+                <button class="btn send-btn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+
+        <!-- Log Section -->
+        <div class="log-section">
+            <h3>📋 Activity Log</h3>
+            <div id="log" class="log"></div>
+            <button class="btn" onclick="clearLog()" style="margin-top: 10px; background: #6c757d;">Clear Log</button>
+        </div>
+    </div>
+
+    <!-- Socket.IO CDN -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
+    <script>
+        // Global variables
+        let socket = null;
+        let isWebSocketConnected = false;
+        let isWebSocketConnecting = false;
+        let currentReceiverId = null;
+        let currentChatRoomId = null;
+        let currentUserSlugId = null;  // ✅ Store user's slug ID
+        let messages = [];
+        let pendingMessages = [];
+        let typingTimeout = null;
+
+        // Logging functions
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            log('Log cleared', 'info');
+        }
+
+        // Status management
+        function updateStatus(status, message) {
+            const statusBar = document.getElementById('statusBar');
+            const statusIcon = statusBar.querySelector('.ws-status');
+            
+            statusBar.className = `status-bar status-${status}`;
+            statusIcon.className = `ws-status ws-${status}`;
+            
+            switch(status) {
+                case 'ready':
+                    statusBar.innerHTML = `<span class="ws-status ws-ready"></span>Ready - ${message || 'HTTP history loaded, WebSocket on first message'}`;
+                    break;
+                case 'connected':
+                    statusBar.innerHTML = `<span class="ws-status ws-connected"></span>Connected - ${message || 'Real-time chat active'}`;
+                    break;
+                case 'disconnected':
+                    statusBar.innerHTML = `<span class="ws-status ws-disconnected"></span>Disconnected - ${message || 'WebSocket connection lost'}`;
+                    break;
+            }
+        }
+
+        // Chat history via HTTP
+        async function fetchChatHistory() {
+            try {
+                const serverUrl = document.getElementById('serverUrl').value;
+                const authToken = document.getElementById('authToken').value;
+
+                log(`📥 Fetching chat history with ${currentReceiverId} via HTTP`);
+
+                const response = await fetch(`http://localhost:3000/chat/get-history`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': authToken
+                    },
+                    body: JSON.stringify({
+                        roomType: "private",
+                        participants: [currentReceiverId]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                const historyMessages = result.messages || [];
+                
+                log(`📥 Received ${historyMessages.length} messages from history`, 'success');
+
+                // Clear chat and display history
+                const chatMessages = document.getElementById('chatMessages');
+                chatMessages.innerHTML = '';
+                messages = [];
+
+                if (historyMessages.length > 0) {
+                    historyMessages.forEach(message => {
+                        addMessageToChat(message, true); // true = from history
+                    });
+                } else {
+                    showEmptyChat();
+                }
+
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            } catch (error) {
+                log(`❌ Error fetching chat history: ${error.message}`, 'error');
+                showEmptyChat();
+                throw error;
+            }
+        }
+
+        // WebSocket connection (only when needed)
+        async function createWebSocketConnection() {
+            return new Promise((resolve, reject) => {
+                if (isWebSocketConnected || isWebSocketConnecting) {
+                    resolve(socket);
+                    return;
+                }
+
+                const serverUrl = document.getElementById('serverUrl').value;
+                const authToken = document.getElementById('authToken').value;
+
+                if (!authToken) {
+                    reject(new Error('Auth token is required for WebSocket'));
+                    return;
+                }
+
+                isWebSocketConnecting = true;
+                updateStatus('ready', 'Connecting to WebSocket...');
+                
+                log(`🔌 Creating WebSocket connection to ${serverUrl}/chat-socket`);
+
+                if (socket) {
+                    socket.disconnect();
+                }
+
+                socket = io(`${serverUrl}`, {
+                    auth: {
+                        token: authToken
+                    },
+                    query: {
+                        receiverId: currentReceiverId
+                    }
+                });
+
+                // Connection events
+                socket.on('connect', () => {
+                    isWebSocketConnected = true;
+                    isWebSocketConnecting = false;
+                    updateStatus('connected');
+                    log('✅ WebSocket connected successfully', 'success');
+                    
+                    // Process any pending messages
+                    if (pendingMessages.length > 0) {
+                        log(`📤 Sending ${pendingMessages.length} pending messages`);
+                        pendingMessages.forEach(msg => socket.emit('sendMessage', msg));
+                        pendingMessages = [];
+                    }
+                    
+                    resolve(socket);
+                });
+
+                socket.on('disconnect', () => {
+                    isWebSocketConnected = false;
+                    isWebSocketConnecting = false;
+                    updateStatus('disconnected');
+                    log('❌ WebSocket disconnected', 'error');
+                });
+
+                socket.on('connect_error', (error) => {
+                    isWebSocketConnecting = false;
+                    updateStatus('disconnected', `Connection error: ${error.message}`);
+                    log(`❌ WebSocket connection error: ${error.message}`, 'error');
+                    reject(error);
+                });
+
+                // 🎯 MAIN EVENT LISTENER FOR RECEIVING MESSAGES
+                socket.on('receiveMessage', (data) => {
+                    log(`📨 Received message via 'receiveMessage' event: ${JSON.stringify(data)}`, 'success');
+                    
+                    // ✅ Handle nested message structure: { message: {...} }
+                    const messageData = data.message || data;
+                    
+                    // ✅ Prevent duplicate messages: ignore messages from current user
+                    const currentUserSlug = getCurrentUserSlugId();
+                    if (messageData.userSlugId === currentUserSlug) {
+                        log(`🚫 Ignoring own message to prevent duplicates: ${messageData.content}`, 'info');
+                        
+                        // ✅ Instead of showing duplicate, just update the status of existing optimistic message
+                        updateOptimisticMessage(messageData);
+                        return;
+                    }
+                    
+                    addMessageToChat(messageData, false); // false = real-time message
+                });
+
+                // Alternative event names (in case backend uses different events)
+                socket.on('newMessage', (data) => {
+                    log(`📨 Received message via 'newMessage' event: ${JSON.stringify(data)}`, 'success');
+                    
+                    // ✅ Handle nested message structure: { message: {...} }
+                    const messageData = data.message || data;
+                    
+                    // ✅ Prevent duplicate messages: ignore messages from current user
+                    const currentUserSlug = getCurrentUserSlugId();
+                    if (messageData.userSlugId === currentUserSlug) {
+                        log(`🚫 Ignoring own message to prevent duplicates: ${messageData.content}`, 'info');
+                        
+                        // ✅ Instead of showing duplicate, just update the status of existing optimistic message
+                        updateOptimisticMessage(messageData);
+                        return;
+                    }
+                    
+                    addMessageToChat(messageData, false);
+                });
+
+                socket.on('messageStatus', (statusData) => {
+                    log(`📊 Message status update: ${JSON.stringify(statusData)}`, 'info');
+                    updateMessageStatus(statusData);
+                });
+
+                socket.on('userTyping', (data) => {
+                    if (data.userId !== getCurrentUserId()) {
+                        showTypingIndicator(data.isTyping);
+                        log(`⌨️ ${data.userId} is ${data.isTyping ? 'typing' : 'stopped typing'}`, 'info');
+                    }
+                });
+
+                socket.on('userJoined', (data) => {
+                    log(`👋 User joined: ${JSON.stringify(data)}`, 'info');
+                });
+
+                socket.on('userLeft', (data) => {
+                    log(`👋 User left: ${JSON.stringify(data)}`, 'info');
+                });
+
+                socket.on('roomJoined', (data) => {
+                    currentChatRoomId = data.roomId;
+                    log(`🏠 Joined room: ${data.roomId}`, 'success');
+                });
+
+                socket.on('error', (error) => {
+                    log(`❌ Socket error: ${JSON.stringify(error)}`, 'error');
+                });
+
+                // Timeout for connection
+                setTimeout(() => {
+                    if (isWebSocketConnecting) {
+                        isWebSocketConnecting = false;
+                        updateStatus('disconnected', 'Connection timeout');
+                        reject(new Error('WebSocket connection timeout'));
+                    }
+                }, 10000);
+            });
+        }
+
+        // Start chat function
+        async function startChat() {
+            currentReceiverId = document.getElementById('receiverId').value.trim();
+            currentUserSlugId = document.getElementById('mySlugId').value.trim();
+
+            if (!currentReceiverId) {
+                alert('Please enter a user ID to chat with');
+                return;
+            }
+
+            if (!document.getElementById('authToken').value.trim()) {
+                alert('Please enter your auth token');
+                return;
+            }
+
+            if (!currentUserSlugId) {
+                alert('Please enter your slug ID');
+                return;
+            }
+
+            try {
+                log(`🚀 Starting chat as ${currentUserSlugId} with user: ${currentReceiverId}`);
+
+                // Step 1: Fetch chat history via HTTP
+                await fetchChatHistory();
+
+                // Step 2: Show chat interface
+                document.getElementById('chatContainer').style.display = 'flex';
+                document.getElementById('chatTitle').textContent = `Chat with ${currentReceiverId}`;
+                document.getElementById('messageInput').focus();
+
+                updateStatus('ready', 'Chat ready - WebSocket will connect on first message');
+                log('✅ Chat started successfully. Send first message to connect WebSocket.', 'success');
+
+            } catch (error) {
+                log(`❌ Error starting chat: ${error.message}`, 'error');
+                alert(`Error starting chat: ${error.message}`);
+            }
+        }
+
+        // Send message function
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const content = messageInput.value.trim();
+
+            if (!content || !currentReceiverId) {
+                return;
+            }
+
+            const tempId = `temp_${Date.now()}`;
+            const messageData = {
+                receiverId: currentReceiverId,
+                content: content,
+                tempId: tempId
+            };
+
+            log(`📤 Sending message: "${content}"`);
+
+            // Clear input immediately
+            messageInput.value = '';
+
+            // Add optimistic message to UI
+            const optimisticMessage = {
+                messageId: tempId,
+                content: content,
+                userSlugId: currentUserSlugId,  // ✅ Use slug ID
+                senderName: 'You',
+                timestamp: Date.now(),
+                status: 'sending',
+                isSent: true
+            };
+            addMessageToChat(optimisticMessage, false);
+
+            try {
+                // Create WebSocket connection if not connected
+                if (!isWebSocketConnected && !isWebSocketConnecting) {
+                    log('🔌 First message - establishing WebSocket connection');
+                    await createWebSocketConnection();
+                }
+
+                if (isWebSocketConnected) {
+                    // Send immediately if connected
+                    socket.emit('sendMessage', messageData);
+                    log(`✅ Message sent via WebSocket`, 'success');
+                    updateMessageStatus({ messageId: tempId, status: 'sent' });
+                } else if (isWebSocketConnecting) {
+                    // Queue if still connecting
+                    pendingMessages.push(messageData);
+                    log('📦 Message queued - WebSocket still connecting');
+                } else {
+                    throw new Error('Failed to establish WebSocket connection');
+                }
+
+            } catch (error) {
+                log(`❌ Error sending message: ${error.message}`, 'error');
+                updateMessageStatus({ messageId: tempId, status: 'failed' });
+            }
+        }
+
+        // Message handling functions
+        function addMessageToChat(message, isFromHistory = false) {
+            const chatMessages = document.getElementById('chatMessages');
+            const emptyMessage = document.getElementById('emptyChatMessage');
+            
+            if (emptyMessage) {
+                emptyMessage.remove();
+            }
+
+            // ✅ Prevent duplicate messages by checking if message ID already exists
+            if (message.messageId && document.getElementById(`msg-${message.messageId}`)) {
+                log(`🚫 Message ${message.messageId} already exists, skipping duplicate`, 'info');
+                return;
+            }
+
+            const currentUserSlug = getCurrentUserSlugId();
+            
+            // ✅ Use userSlugId from the message to determine if it's sent by current user
+            let isSent = false;
+            
+            if (message.isSent) {
+                // Optimistic UI message (just sent)
+                isSent = true;
+            } else if (message.userSlugId && currentUserSlug && currentUserSlug !== 'unknown_user') {
+                // Compare userSlugId from message with current user's slug ID
+                isSent = message.userSlugId === currentUserSlug;
+            } else {
+                // Fallback: assume it's received if we can't determine
+                isSent = false;
+            }
+
+            log(`📝 Message from ${message.userSlugId || 'unknown'}, current user: ${currentUserSlug}, isSent: ${isSent}`, 'info');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isSent ? 'sent' : 'received'}`;
+            messageDiv.id = `msg-${message.messageId || message.tempId}`;
+
+            // ✅ Handle both timestamp formats (number and string dates)
+            let timestamp;
+            if (message.createdAt) {
+                timestamp = new Date(message.createdAt).toLocaleTimeString();
+            } else if (message.timestamp) {
+                timestamp = new Date(message.timestamp).toLocaleTimeString();
+            } else {
+                timestamp = new Date().toLocaleTimeString();
+            }
+            
+            const senderName = isSent ? 'You' : (message.userSlugId || currentReceiverId);
+
+            messageDiv.innerHTML = `
+                <div class="message-bubble">
+                    <div>${message.content}</div>
+                    <div class="message-info">${senderName} • ${timestamp}</div>
+                    <div class="message-status" id="status-${message.messageId || message.tempId}">
+                        ${message.status || (isFromHistory ? 'delivered' : 'sent')}
+                    </div>
+                </div>
+            `;
+
+            chatMessages.appendChild(messageDiv);
+            
+            if (!isFromHistory) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            messages.push(message);
+        }
+
+        function updateMessageStatus(statusData) {
+            const statusElement = document.getElementById(`status-${statusData.messageId}`);
+            if (statusElement) {
+                statusElement.textContent = statusData.status;
+            }
+        }
+
+        // ✅ Update optimistic message with real server data
+        function updateOptimisticMessage(serverMessage) {
+            // Find the most recent optimistic message with matching content
+            const tempMessages = messages.filter(msg => 
+                msg.isSent && 
+                msg.content === serverMessage.content && 
+                (msg.tempId || msg.messageId?.startsWith('temp_'))
+            );
+            
+            if (tempMessages.length > 0) {
+                const tempMessage = tempMessages[tempMessages.length - 1]; // Get the latest one
+                const tempElement = document.getElementById(`msg-${tempMessage.messageId || tempMessage.tempId}`);
+                
+                if (tempElement) {
+                    // Update the message ID
+                    tempElement.id = `msg-${serverMessage.messageId}`;
+                    
+                    // Update the status
+                    const statusElement = tempElement.querySelector('.message-status');
+                    if (statusElement) {
+                        statusElement.id = `status-${serverMessage.messageId}`;
+                        statusElement.textContent = serverMessage.status || 'delivered';
+                    }
+                    
+                    log(`✅ Updated optimistic message ${tempMessage.tempId || tempMessage.messageId} → ${serverMessage.messageId}`, 'success');
+                    
+                    // Update the message in our array
+                    const messageIndex = messages.findIndex(msg => msg === tempMessage);
+                    if (messageIndex !== -1) {
+                        messages[messageIndex] = {
+                            ...serverMessage,
+                            isSent: true // Keep the isSent flag
+                        };
+                    }
+                }
+            }
+        }
+
+        function showEmptyChat() {
+            const chatMessages = document.getElementById('chatMessages');
+            chatMessages.innerHTML = `
+                <div id="emptyChatMessage" class="empty-chat">
+                    🚀 Start your conversation! Send your first message below.
+                </div>
+            `;
+        }
+
+        function showTypingIndicator(isTyping) {
+            const indicator = document.getElementById('typingIndicator');
+            if (isTyping) {
+                indicator.style.display = 'block';
+                indicator.textContent = `${currentReceiverId} is typing...`;
+            } else {
+                indicator.style.display = 'none';
+            }
+        }
+
+        // Input handling
+        function handleMessageKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function handleTyping() {
+            if (socket && isWebSocketConnected) {
+                // Send typing indicator
+                socket.emit('typing', { isTyping: true });
+                
+                // Clear previous timeout
+                if (typingTimeout) {
+                    clearTimeout(typingTimeout);
+                }
+                
+                // Stop typing after 1 second of no input
+                typingTimeout = setTimeout(() => {
+                    socket.emit('typing', { isTyping: false });
+                }, 1000);
+            }
+        }
+
+        // Utility functions
+        function getCurrentUserSlugId() {
+            // ✅ Use the slug ID input directly
+            return currentUserSlugId || document.getElementById('mySlugId').value.trim() || 'unknown_user';
+        }
+
+        function leaveChat() {
+            // Disconnect WebSocket
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                isWebSocketConnected = false;
+                isWebSocketConnecting = false;
+                log('🔌 WebSocket disconnected - chat left', 'info');
+            }
+
+            // Reset UI
+            document.getElementById('chatContainer').style.display = 'none';
+            document.getElementById('receiverId').value = '';
+            currentReceiverId = null;
+            currentChatRoomId = null;
+            currentUserSlugId = null;  // ✅ Reset slug ID
+            messages = [];
+            pendingMessages = [];
+
+            updateStatus('ready', 'Ready for new chat');
+        }
+
+        // Initialize
+        window.onload = () => {
+            updateStatus('ready');
+            log('💬 Chat 2-End Test initialized - Ready to start!', 'success');
+        };
+
+        // Cleanup on page unload
+        window.onbeforeunload = () => {
+            if (socket) {
+                socket.disconnect();
+            }
+        };
+    </script>
+</body>
+</html>

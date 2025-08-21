@@ -53,7 +53,7 @@ export interface LoginResponse {
 export interface logOutRequest {
   userId: string;
   sessionId: string;
-  accessToken: string
+  accessToken: string;
 }
 
 export interface logOutResponse {
@@ -74,11 +74,20 @@ export interface RotateTokenResponse {
 }
 
 export interface GetUserTokenQuery {
-  userId: string;
+  slugId: string;
 }
 
 export interface GetUserTokensResponse {
   tokens: string[];
+}
+
+export interface Character {
+  id: string;
+  characterName: string;
+  characterTitle: string;
+  level: number;
+  exp: number;
+  nextLevelExp: number;
 }
 
 export const AUTH_PACKAGE_NAME = "auth";
@@ -90,13 +99,25 @@ export interface GetUserFromSlugRequest {
 
 export interface GetUserFromSlugResponse {
   userId: string;
+  slugId: string;
   username: string;
   role: string;
   email: string;
+  character: Character | undefined;
+}
+
+export interface GetUserListFromSlugListRequest {
+  slugIds: string[];
+}
+
+export interface GetUserListFromSlugListResponse {
+  users: GetUserFromSlugResponse[];
 }
 
 export interface AuthServiceClient {
   login(request: LoginRequest, metaData: Metadata): Observable<LoginResponse>;
+
+  logOut(request: logOutRequest, metaData: Metadata): Observable<logOutResponse>;
 
   rotateToken(request: RotateTokenRequest, metaData: Metadata): Observable<RotateTokenResponse>;
 
@@ -108,7 +129,7 @@ export interface AuthServiceClient {
 
   getUserFromSlug(request: GetUserFromSlugRequest, metaData: Metadata): Observable<GetUserFromSlugResponse>;
 
-  logOut(request: logOutRequest, metaData: Metadata): Observable<logOutResponse>;
-  }
+  getListUserInfoFromSlugs(request: GetUserListFromSlugListRequest, metaData: Metadata): Observable<GetUserListFromSlugListResponse>;
+}
 
 export const AUTH_SERVICE_NAME = "AuthService";

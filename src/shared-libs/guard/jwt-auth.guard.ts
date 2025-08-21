@@ -11,13 +11,16 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { AuthServiceClient } from '@root/proto-interface/auth.proto.interface';
+import {
+  AuthServiceClient,
+  GetUserFromSlugResponse,
+} from '@root/proto-interface/auth.proto.interface';
 import { RedisService } from '@root/redis/redis.service';
 import { GrpcClient } from '@shared/utilities/grpc-client';
 import { firstValueFrom } from 'rxjs';
 import {
   BlackListedAccessToken_Prefix,
-  AccessToken_Prefix,
+  UserInfo_Prefix,
 } from '@root/redis/constant';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
@@ -38,7 +41,7 @@ export class JwtGuard implements CanActivate {
   constructor(
     private jwtService: JwtService,
     private configService: ConfigService,
-    private redisClient: RedisService,
+    private redisService: RedisService,
     private reflector: Reflector,
   ) {
     const grpcClient = new GrpcClient<AuthServiceClient>({
@@ -87,7 +90,7 @@ export class JwtGuard implements CanActivate {
     const token = authHeader.split('Bearer ')[1];
 
     if (token) {
-      const blacklistedToken = await this.redisClient.get(
+      const blacklistedToken = await this.redisService.get(
         `${BlackListedAccessToken_Prefix}${token}`,
       );
       if (blacklistedToken) {
@@ -102,29 +105,38 @@ export class JwtGuard implements CanActivate {
       if (!userDataToken.slugId) {
         throw new HttpException('Invalid request', HttpStatus.FORBIDDEN);
       }
-      const redisKey = `${AccessToken_Prefix}${userDataToken.slugId}`;
-      const user = await this.redisClient.get(redisKey);
+      const redisKey = `${UserInfo_Prefix}${userDataToken.slugId}`;
 
-      if (user) {
-        request['user'] = { ...userDataToken, ...user };
-      } else {
-        const metadata = new Metadata();
-        metadata.add('x-trace-id', request.get('x-trace-id') as string);
-        const user = await firstValueFrom(
-          this.authService.getUserFromSlug(
-            {
-              slugId: userDataToken.slugId,
-            },
-            metadata,
+      const user = await this.redisService.getOrSet(
+        redisKey,
+        () =>
+          this.getUserData(
+            request.get('x-trace-id') as string,
+            userDataToken.slugId,
           ),
-        );
-        request['user'] = { ...userDataToken, ...user };
-        await this.redisClient.set(redisKey, user, 3600);
-      }
+        3600 * 1000,
+      );
+      request['user'] = user;
 
       return true;
     } catch (_) {
       throw new HttpException('Invalid token', HttpStatus.FORBIDDEN);
     }
+  }
+
+  private async getUserData(
+    traceId: string,
+    slugId: string,
+  ): Promise<GetUserFromSlugResponse> {
+    const metadata = new Metadata();
+    metadata.add('x-trace-id', traceId);
+    return await firstValueFrom(
+      this.authService.getUserFromSlug(
+        {
+          slugId: slugId,
+        },
+        metadata,
+      ),
+    );
   }
 }

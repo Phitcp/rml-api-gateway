@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { AppContext } from '@shared/decorator/context.decorator';
 import { AppLogger } from '@root/shared-libs/logger';
 import { basename } from 'path';
@@ -10,21 +10,33 @@ import {
   RotateTokenResponse,
 } from '@root/proto-interface/auth.proto.interface';
 import { firstValueFrom } from 'rxjs';
-import { Metadata } from '@grpc/grpc-js'; // Use require to avoid issues with Metadata not being recognized in the import statement
+import { Metadata } from '@grpc/grpc-js';
 import { GatewayRotateTokenRequestDto } from '../dto/auth.dto';
-import { JwtGuard } from '@shared/guard/jwt-auth.guard';
+
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleDestroy {
+  private grpcClient: GrpcClient<AuthServiceClient>;
   private authService: AuthServiceClient;
+  
   constructor(private appLogger: AppLogger) {
-    const grpcClient = new GrpcClient<AuthServiceClient>({
+    
+    this.grpcClient = new GrpcClient<AuthServiceClient>({
       package: 'auth',
       protoPath: 'src/proto/auth.proto',
       url: '0.0.0.0:4001',
       serviceName: 'AuthService',
     });
 
-    this.authService = grpcClient.getService();
+    this.authService = this.grpcClient.getService();
+    
+    // Log initial connection status
+    this.appLogger.log('AuthService gRPC client initialized with connection pooling');
+  }
+
+  async onModuleDestroy() {
+    // Properly clean up gRPC connections
+    await this.grpcClient.close();
+    this.appLogger.log('AuthService gRPC connections closed');
   }
 
   async login(context: AppContext, data: any): Promise<LoginResponse> {
@@ -32,6 +44,7 @@ export class AuthService {
       .addLogContext(context.traceId)
       .addMsgParam(basename(__filename))
       .addMsgParam('login');
+    
     this.appLogger.log('Will login');
     const metadata = new Metadata();
     metadata.add('x-trace-id', context.traceId);
@@ -126,14 +139,21 @@ export class AuthService {
       .addLogContext(context.traceId)
       .addMsgParam(basename(__filename))
       .addMsgParam('getUserFromSlug');
+    
     this.appLogger.log('Will getUserFromSlug');
     const metadata = new Metadata();
     metadata.add('x-trace-id', context.traceId);
-    const response = await firstValueFrom(
-      this.authService.getUserFromSlug({ slugId: slug }, metadata),
-    );
-    this.appLogger.log('Did getUserFromSlug');
-    return response;
+    
+    try {
+      const response = await firstValueFrom(
+        this.authService.getUserFromSlug({ slugId: slug }, metadata),
+      );
+      this.appLogger.log('Did getUserFromSlug');
+      return response;
+    } catch (error) {
+      this.appLogger.error(`Failed to getUserFromSlug for slug ${slug}: ${error.message}`);
+      throw error;
+    }
   }
 
   async logOut(context: AppContext) {

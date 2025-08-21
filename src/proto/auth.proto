@@ -4,12 +4,14 @@ package auth;
 
 service AuthService {
   rpc Login(LoginRequest) returns (LoginResponse);
+  rpc LogOut(LogOutRequest) returns (LogOutResponse);
   rpc RotateToken(RotateTokenRequest) returns (RotateTokenResponse);
   rpc GetUserTokens(GetUserTokenQuery) returns (GetUserTokensResponse);
   rpc RegisterOtp(RegisterOtpRequest) returns (RegisterOtpResponse);
   rpc VerifyRegisterOtp(VerifyRegisterOtpRequest) returns (VerifyRegisterOtpResponse);
+
   rpc GetUserFromSlug(GetUserFromSlugRequest) returns (GetUserFromSlugResponse);
-  rpc LogOut(LogOutRequest) returns (LogOutResponse);
+  rpc getListUserInfoFromSlugs(GetUserListFromSlugListRequest) returns (GetUserListFromSlugListResponse);
 }
 
 message RegisterOtpRequest {
@@ -71,15 +73,25 @@ message GetUserTokensResponse {
   repeated string tokens = 1;
 }
 
+message Character {
+  string id = 1;
+  string characterName = 2;
+  string characterTitle = 3;
+  int32 level = 4;
+  int32 exp = 5;
+  int32 nextLevelExp = 6;
+}
 message GetUserFromSlugRequest {
   string slugId = 1;
 }
 
 message GetUserFromSlugResponse {
   string userId = 1;
-  string username = 2;
-  string role = 3;
-  string email = 4;
+  string slugId = 2;
+  string username = 3;
+  string role = 4;
+  string email = 5;
+  Character character = 6;
 }
 
 message LogOutRequest {
@@ -91,4 +103,11 @@ message LogOutRequest {
 message LogOutResponse {
   bool isSuccess = 1;
   string message = 2;
+}
+
+message GetUserListFromSlugListRequest {
+  repeated string slugIds = 1;
+}
+message GetUserListFromSlugListResponse {
+  repeated GetUserFromSlugResponse users = 1;
 }

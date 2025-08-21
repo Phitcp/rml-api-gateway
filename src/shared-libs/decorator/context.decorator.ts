@@ -2,6 +2,7 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 export interface UserContext {
   userId: string;
+  slugId: string;
 }
 export interface AppContext {
   traceId: string;
@@ -29,7 +30,7 @@ export const Context = createParamDecorator(
       token,
       sessionId,
       refreshToken,
-      user: { userId: user?.userId || '' },
+      user,
     };
   },
 );

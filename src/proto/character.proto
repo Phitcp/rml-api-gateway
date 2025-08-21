@@ -4,15 +4,42 @@ package character;
 
 service CharacterService {
   rpc CreateCharacterProfile(CreateCharacterProfileRequest) returns (CreateCharacterProfileResponse);
+  rpc GetCharacterProfile(GetCharacterProfileRequest) returns (GetCharacterProfileResponse);
+  rpc GetCharacterProfileByBulk(GetCharacterProfileByBulkRequest) returns (GetCharacterProfileByBulkResponse);
 }
 
 message CreateCharacterProfileRequest {
-  string userId = 1;
-  string userName = 2;
+  string id = 1;
+  string characterName = 2;
 }
 
 message CreateCharacterProfileResponse {
-  string characterId = 1;
+  string id = 1;
+  string characterName = 2;
+  string characterTitle = 3;
+  int32 level = 4;
+  int32 exp = 5;
+  int32 nextLevelExp = 6;
+}
+
+message GetCharacterProfileRequest {
+  string userId = 1;
+}
+
+message GetCharacterProfileResponse {
+  Character character = 1;
+}
+
+message GetCharacterProfileByBulkRequest {
+  repeated string userIds = 1;
+}
+
+message GetCharacterProfileByBulkResponse {
+  repeated Character characters = 1;
+}
+
+message Character {
+  string id = 1;
   string characterName = 2;
   string characterTitle = 3;
   int32 level = 4;

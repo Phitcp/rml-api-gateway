@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat System Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #f5f5f5; 
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        .status { 
+            padding: 10px; 
+            border-radius: 4px; 
+            margin: 10px 0; 
+            font-weight: bold; 
+        }
+        .connected { 
+            background-color: #d4edda; 
+            color: #155724; 
+            border: 1px solid #c3e6cb; 
+        }
+        .disconnected { 
+            background-color: #f8d7da; 
+            color: #721c24; 
+            border: 1px solid #f5c6cb; 
+        }
+        .ready { 
+            background-color: #fff3cd; 
+            color: #856404; 
+            border: 1px solid #ffeaa7; 
+        }
+        button { 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            margin: 5px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+        }
+        button:hover { 
+            background-color: #0056b3; 
+        }
+        button:disabled { 
+            background-color: #6c757d; 
+            cursor: not-allowed; 
+        }
+        .input-group { 
+            margin: 10px 0; 
+        }
+        label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+        }
+        input { 
+            width: 100%; 
+            padding: 8px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            margin-bottom: 10px;
+        }
+        .chat-container {
+            margin-top: 20px;
+            display: none;
+        }
+        .chat-header {
+            background-color: #007bff;
+            color: white;
+            padding: 15px;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+        }
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            background-color: #f8f9fa;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 70%;
+        }
+        .message.sent {
+            background-color: #007bff;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+        .message.received {
+            background-color: #e9ecef;
+            color: #333;
+        }
+        .message-info {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        .message-status {
+            font-size: 10px;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+        .chat-input-container {
+            display: flex;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            background-color: white;
+        }
+        .chat-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            margin-right: 10px;
+        }
+        .send-btn {
+            border-radius: 20px;
+            padding: 10px 20px;
+        }
+        .empty-chat {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            margin: 50px 0;
+        }
+        .typing-indicator {
+            font-style: italic;
+            color: #6c757d;
+            font-size: 12px;
+            margin: 5px 0;
+            display: none;
+        }
+        .log { 
+            height: 200px; 
+            overflow-y: auto; 
+            border: 1px solid #ddd; 
+            padding: 10px; 
+            background-color: #f8f9fa; 
+            font-family: monospace; 
+            font-size: 12px; 
+            margin-top: 20px;
+        }
+        .log-entry { 
+            margin: 2px 0; 
+            padding: 2px; 
+        }
+        .log-error { 
+            color: #dc3545; 
+        }
+        .log-success { 
+            color: #28a745; 
+        }
+        .log-info {
+            color: #17a2b8;
+        }
+        .connection-hint {
+            font-size: 12px;
+            color: #6c757d;
+            font-style: italic;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💬 Chat System Test</h1>
+        
+        <!-- Setup Section -->
+        <div class="input-group">
+            <label for="serverUrl">Server URL:</label>
+            <input type="text" id="serverUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+        </div>
+        
+        <div class="input-group">
+            <label for="authToken">Auth Token:</label>
+            <input type="text" id="authToken" value="" placeholder="Bearer your-jwt-token-here">
+        </div>
+        
+        <div class="input-group">
+            <label for="receiverId">Receiver User ID:</label>
+            <input type="text" id="receiverId" value="" placeholder="Enter receiver user ID">
+            <button onclick="startChat()">Start Chat</button>
+        </div>
+        
+        <div id="connectionStatus" class="status ready">🟡 Ready - WebSocket will connect when you send first message</div>
+        <div class="connection-hint">💡 Backend handles token decoding and sender ID extraction</div>
+
+        <!-- Chat Interface -->
+        <div id="chatContainer" class="chat-container">
+            <div class="chat-header">
+                <span id="chatTitle">Chat</span>
+                <button onclick="leaveChat()" style="float: right; background: transparent; border: 1px solid white; color: white; padding: 5px 10px;">Leave Chat</button>
+            </div>
+            <div id="chatMessages" class="chat-messages">
+                <div id="emptyChatMessage" class="empty-chat">
+                    🚀 Start your chat now! Send your first message below.
+                </div>
+            </div>
+            <div id="typingIndicator" class="typing-indicator">
+                User is typing...
+            </div>
+            <div class="chat-input-container">
+                <input type="text" id="messageInput" class="chat-input" placeholder="Type your message..." onkeypress="handleMessageKeyPress(event)">
+                <button class="send-btn" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div>
+            <h3>📋 Activity Log</h3>
+            <div id="log" class="log"></div>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <!-- Add Socket.IO client library -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
+    <script>
+        let socket = null;
+        let isConnected = false;
+        let isConnecting = false;
+        let receiverId = null;
+        let messages = [];
+        let pendingMessages = [];
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function updateConnectionStatus(status) {
+            const statusDiv = document.getElementById('connectionStatus');
+            
+            switch(status) {
+                case 'ready':
+                    statusDiv.className = 'status ready';
+                    statusDiv.innerHTML = '🟡 Ready - WebSocket will connect when you send first message';
+                    isConnected = false;
+                    isConnecting = false;
+                    break;
+                case 'connecting':
+                    statusDiv.className = 'status ready';
+                    statusDiv.innerHTML = '🔄 Connecting to WebSocket...';
+                    isConnected = false;
+                    isConnecting = true;
+                    break;
+                case 'connected':
+                    statusDiv.className = 'status connected';
+                    statusDiv.innerHTML = '✅ WebSocket Connected';
+                    isConnected = true;
+                    isConnecting = false;
+                    log('Connected to chat WebSocket', 'success');
+                    break;
+                case 'disconnected':
+                    statusDiv.className = 'status disconnected';
+                    statusDiv.innerHTML = '❌ WebSocket Disconnected';
+                    isConnected = false;
+                    isConnecting = false;
+                    log('Disconnected from chat WebSocket', 'error');
+                    break;
+            }
+        }
+
+        function createWebSocketConnection() {
+            return new Promise((resolve, reject) => {
+                if (isConnected || isConnecting) {
+                    resolve(socket);
+                    return;
+                }
+
+                const serverUrl = document.getElementById('serverUrl').value;
+                const authToken = document.getElementById('authToken').value;
+
+                if (!serverUrl || !authToken) {
+                    reject(new Error('Server URL and auth token are required'));
+                    return;
+                }
+
+                updateConnectionStatus('connecting');
+                log(`Creating WebSocket connection to ${serverUrl}`);
+
+                if (socket) {
+                    socket.disconnect();
+                }
+
+                socket = io(`${serverUrl}`, {
+                    auth: {
+                        token: authToken
+                    },
+                    extraHeaders: {
+                        Authorization: authToken
+                    }
+                });
+
+                socket.on('connect', () => {
+                    updateConnectionStatus('connected');
+                    resolve(socket);
+                    
+                    // Process any pending messages
+                    processPendingMessages();
+                });
+
+                socket.on('disconnect', () => {
+                    updateConnectionStatus('disconnected');
+                });
+
+                socket.on('connect_error', (error) => {
+                    log(`WebSocket connection error: ${error.message}`, 'error');
+                    updateConnectionStatus('disconnected');
+                    reject(error);
+                });
+
+                // Chat-specific events
+                socket.on('newMessage', (data) => {
+                    log(`New message received: ${JSON.stringify(data)}`, 'success');
+                    addMessageToChat(data, false);
+                });
+
+                socket.on('messageStatusUpdate', (data) => {
+                    log(`Message status update: ${JSON.stringify(data)}`, 'info');
+                    updateMessageStatus(data);
+                });
+
+                socket.on('userTyping', (data) => {
+                    log(`User typing: ${JSON.stringify(data)}`, 'info');
+                    showTypingIndicator(data.userId);
+                });
+
+                socket.on('roomJoined', (data) => {
+                    log(`Room joined confirmation: ${JSON.stringify(data)}`, 'success');
+                });
+
+                socket.on('roomLeft', (data) => {
+                    log(`Room left confirmation: ${JSON.stringify(data)}`, 'info');
+                });
+
+                socket.on('error', (error) => {
+                    log(`WebSocket error: ${JSON.stringify(error)}`, 'error');
+                });
+
+                // Connection timeout
+                setTimeout(() => {
+                    if (isConnecting) {
+                        reject(new Error('WebSocket connection timeout'));
+                    }
+                }, 10000);
+            });
+        }
+
+        function processPendingMessages() {
+            if (pendingMessages.length > 0) {
+                log(`Processing ${pendingMessages.length} pending messages`);
+                pendingMessages.forEach(messageData => {
+                    socket.emit('sendMessage', messageData);
+                });
+                pendingMessages = [];
+            }
+        }
+
+        async function startChat() {
+            receiverId = document.getElementById('receiverId').value;
+
+            if (!receiverId) {
+                alert('Please enter receiver user ID');
+                return;
+            }
+
+            log(`Starting chat with receiver: ${receiverId}`);
+
+            try {
+                // Fetch chat history via HTTP (backend handles token decoding)
+                await fetchChatHistory();
+                
+                // Show chat interface
+                document.getElementById('chatContainer').style.display = 'block';
+                document.getElementById('chatTitle').textContent = `Chat with ${receiverId}`;
+                document.getElementById('messageInput').focus();
+
+                log('Chat interface ready. WebSocket will connect when you send first message.');
+
+            } catch (error) {
+                log(`Error starting chat: ${error.message}`, 'error');
+            }
+        }
+
+        async function fetchChatHistory() {
+            try {
+                const serverUrl = document.getElementById('serverUrl').value;
+                const authToken = document.getElementById('authToken').value;
+
+                log(`Fetching chat history with receiver: ${receiverId}`);
+
+                const response = await fetch(`http://localhost:3000/chat/get-history`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': authToken
+                    },
+                    body: JSON.stringify(
+                        {
+                            "roomType": "private",
+                            "participants": ["F6X9XPVD", receiverId]
+                        }
+                    )
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                log(`Received chat history: ${result.data?.length || 0} messages`);
+
+                // Clear existing messages
+                messages = [];
+                const chatMessages = document.getElementById('chatMessages');
+                chatMessages.innerHTML = '';
+
+                if (result.data && result.data.length > 0) {
+                    // Add messages to chat
+                    result.data.forEach(message => {
+                        addMessageToChat(message, true);
+                    });
+                } else {
+                    // Show empty chat message
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.id = 'emptyChatMessage';
+                    emptyDiv.className = 'empty-chat';
+                    emptyDiv.textContent = '🚀 Start your chat now! Send your first message below.';
+                    chatMessages.appendChild(emptyDiv);
+                }
+
+                // Scroll to bottom
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            } catch (error) {
+                log(`Error fetching chat history: ${error.message}`, 'error');
+                // Show empty chat on error
+                const chatMessages = document.getElementById('chatMessages');
+                chatMessages.innerHTML = `
+                    <div class="empty-chat">
+                        ❌ Error loading chat history. You can still send messages.
+                    </div>
+                `;
+            }
+        }
+
+        function addMessageToChat(message, isHistory = false) {
+            const chatMessages = document.getElementById('chatMessages');
+            const emptyMessage = document.getElementById('emptyChatMessage');
+            
+            if (emptyMessage) {
+                emptyMessage.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            // Backend determines if message is sent or received based on token
+            messageDiv.className = `message ${message.isSent ? 'sent' : 'received'}`;
+            messageDiv.id = `msg-${message.messageId || message.tempId}`;
+
+            const timestamp = new Date(message.timestamp).toLocaleTimeString();
+            const senderName = message.isSent ? 'You' : receiverId;
+
+            messageDiv.innerHTML = `
+                <div>${message.content}</div>
+                <div class="message-info">${senderName} • ${timestamp}</div>
+                <div class="message-status" id="status-${message.messageId || message.tempId}">${message.status || 'sent'}</div>
+            `;
+
+            chatMessages.appendChild(messageDiv);
+            
+            if (!isHistory) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            messages.push(message);
+        }
+
+        function updateMessageStatus(statusData) {
+            const statusElement = document.getElementById(`status-${statusData.messageId}`);
+            if (statusElement) {
+                statusElement.textContent = statusData.status;
+            }
+        }
+
+        function showTypingIndicator(userId) {
+            const indicator = document.getElementById('typingIndicator');
+            indicator.style.display = 'block';
+            indicator.textContent = `${receiverId} is typing...`;
+            
+            setTimeout(() => {
+                indicator.style.display = 'none';
+            }, 3000);
+        }
+
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const content = messageInput.value.trim();
+
+            if (!content || !receiverId) {
+                return;
+            }
+
+            const tempId = Date.now().toString();
+            const messageData = {
+                receiverId: receiverId,
+                content: content,
+                messageType: 'text',
+                tempId: tempId
+            };
+
+            log(`Preparing to send message: ${content}`);
+
+            // Add optimistic message to UI immediately
+            const optimisticMessage = {
+                messageId: tempId,
+                tempId: tempId,
+                receiverId: receiverId,
+                content: content,
+                timestamp: Date.now(),
+                status: 'sending',
+                isSent: true
+            };
+
+            addMessageToChat(optimisticMessage);
+            messageInput.value = '';
+
+            try {
+                // Create WebSocket connection if not exists
+                if (!isConnected && !isConnecting) {
+                    log('Creating WebSocket connection for first message');
+                    await createWebSocketConnection();
+                }
+
+                if (isConnected) {
+                    // Send message immediately if connected
+                    socket.emit('sendMessage', messageData);
+                    log(`Message sent via WebSocket: ${content}`);
+                } else if (isConnecting) {
+                    // Queue message if still connecting
+                    pendingMessages.push(messageData);
+                    log('Message queued - WebSocket still connecting');
+                } else {
+                    throw new Error('Failed to establish WebSocket connection');
+                }
+
+                // Update message status to 'sent'
+                updateMessageStatus({ messageId: tempId, status: 'sent' });
+
+            } catch (error) {
+                log(`Error sending message: ${error.message}`, 'error');
+                updateMessageStatus({ messageId: tempId, status: 'failed' });
+            }
+        }
+
+        function handleMessageKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            } else {
+                // Send typing indicator only if WebSocket is connected
+                if (socket && isConnected && receiverId) {
+                    socket.emit('typing', {
+                        receiverId: receiverId
+                    });
+                }
+            }
+        }
+
+        function leaveChat() {
+            // Disconnect WebSocket to reduce server load
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                updateConnectionStatus('ready');
+                log('WebSocket disconnected to reduce server load');
+            }
+
+            document.getElementById('chatContainer').style.display = 'none';
+            document.getElementById('receiverId').value = '';
+            receiverId = null;
+            messages = [];
+            pendingMessages = [];
+        }
+
+        // Initialize on page load
+        window.onload = () => {
+            updateConnectionStatus('ready');
+            log('Chat system ready - Backend handles all token logic');
+        };
+    </script>
+</body>
+</html>

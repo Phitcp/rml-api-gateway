@@ -104,7 +104,7 @@ export class ChatDistributorService {
     
     const result = await firstValueFrom(
       this.chatServiceClient.sendMessage({
-        senderId: userId,
+        userId: userId,
         roomId: data.roomId,
         content: data.content,
         messageType: data.messageType || 'text'
@@ -228,10 +228,10 @@ export class ChatSyncService extends EventSubscriber {
   }
 
   private async handleMessageDelivered(event: any) {
-    const { senderId, messageId, deliveredBy } = event.data;
+    const { userId, messageId, deliveredBy } = event.data;
     
     // Notify sender about delivery
-    this.chatGateway.broadcastToUser(senderId, 'messageStatusUpdate', {
+    this.chatGateway.broadcastToUser(userId, 'messageStatusUpdate', {
       messageId,
       status: 'delivered',
       userId: deliveredBy,
@@ -240,10 +240,10 @@ export class ChatSyncService extends EventSubscriber {
   }
 
   private async handleMessageRead(event: any) {
-    const { senderId, messageId, readBy, readAt } = event.data;
+    const { userId, messageId, readBy, readAt } = event.data;
     
     // Notify sender about read receipt
-    this.chatGateway.broadcastToUser(senderId, 'messageStatusUpdate', {
+    this.chatGateway.broadcastToUser(userId, 'messageStatusUpdate', {
       messageId,
       status: 'read',
       userId: readBy,
@@ -288,7 +288,7 @@ export class ChatPubSubService {
 interface ChatMessage {
   messageId: number;              // Local room sequence
   roomId: string;                 // Chat room identifier
-  senderId: string;               // Message sender ID
+  userId: string;               // Message sender ID
   content: string;                // Message content
   timestamp: number;              // Unix timestamp
   monthYear: string;              // Format: "2025-08" for sharding
@@ -440,7 +440,7 @@ gRPC Chat Service → Business Logic → Update Database → Publish Redis Event
   messageId: Number,
   roomId: String,
   monthYear: String,        // "2025-08", "2025-09", etc. (SHARD KEY)
-  senderId: String,
+  userId: String,
   content: String,
   timestamp: Date,
   // ... other fields

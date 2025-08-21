@@ -25,10 +25,39 @@ export interface CreateCharacterProfileResponse {
   nextLevelExp: number;
 }
 
+export interface GetCharacterProfileRequest {
+  userId: string;
+}
+
+export interface GetCharacterProfileResponse {
+  character: Character | undefined;
+}
+
+export interface GetCharacterProfileByBulkRequest {
+  userIds: string[];
+}
+
+export interface GetCharacterProfileByBulkResponse {
+  characters: Character[];
+}
+
+export interface Character {
+  id: string;
+  characterName: string;
+  characterTitle: string;
+  level: number;
+  exp: number;
+  nextLevelExp: number;
+}
+
 export const CHARACTER_PACKAGE_NAME = "character";
 
 export interface CharacterServiceClient {
   createCharacterProfile(request: CreateCharacterProfileRequest, metaData: Metadata): Observable<CreateCharacterProfileResponse>;
+
+  getCharacterProfile(request: GetCharacterProfileRequest, metaData: Metadata): Observable<GetCharacterProfileResponse>;
+
+  getCharacterProfileByBulk(request: GetCharacterProfileByBulkRequest, metaData: Metadata): Observable<GetCharacterProfileByBulkResponse>;
 }
 
 export const CHARACTER_SERVICE_NAME = "CharacterService";

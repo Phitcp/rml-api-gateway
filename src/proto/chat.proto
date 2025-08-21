@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package chat;
+
+import "google/protobuf/empty.proto";
+service ChatService {
+  rpc Ping(google.protobuf.Empty) returns (PingResponse);
+  rpc GetChatHistory(GetChatHistoryRequest) returns (GetChatHistoryResponse);
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+}
+
+message GetChatHistoryRequest {
+  optional string roomId = 1;
+  string roomType = 2;
+  string userId = 3;
+  repeated string participants = 4;
+  int32 limit = 5;
+  int32 skip = 6;
+}
+
+message ChatMessage {
+  string roomId = 1;
+  string messageId = 2;
+  string content = 3;
+  string userId = 4;
+  string userSlugId = 5;
+  string createdAt = 6;
+  string updatedAt = 7;
+  string status = 8;
+}
+
+message GetChatHistoryResponse {
+  repeated ChatMessage messages = 1;
+}
+
+message SendMessageRequest {
+  optional string roomId = 1;
+  repeated string participants = 2;
+  string content = 3;
+  string userId = 4;
+  string userSlugId = 5;
+  string senderName = 6;
+}
+
+message SendMessageResponse {
+  ChatMessage message = 1;
+}
+
+message PingResponse {
+  string message = 1;
+}
+
