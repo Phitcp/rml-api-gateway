@@ -7,6 +7,7 @@ service ChatService {
   rpc Ping(google.protobuf.Empty) returns (PingResponse);
   rpc GetChatHistory(GetChatHistoryRequest) returns (GetChatHistoryResponse);
   rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  rpc GetRoomsData(GetRoomsDataRequest) returns (GetRoomsDataResponse);
 }
 
 message GetChatHistoryRequest {
@@ -20,7 +21,7 @@ message GetChatHistoryRequest {
 
 message ChatMessage {
   string roomId = 1;
-  string messageId = 2;
+  int32 messageId = 2;
   string content = 3;
   string userId = 4;
   string userSlugId = 5;
@@ -39,7 +40,6 @@ message SendMessageRequest {
   string content = 3;
   string userId = 4;
   string userSlugId = 5;
-  string senderName = 6;
 }
 
 message SendMessageResponse {
@@ -50,3 +50,24 @@ message PingResponse {
   string message = 1;
 }
 
+message GetRoomsDataRequest {
+  repeated string roomIds = 1;
+}
+
+message lastMessage {
+  string sender = 1;
+  string content = 2;
+  string timestamp = 3;
+}
+
+message ChatRoom {
+  string roomId = 1;
+  repeated string participants = 2;
+  lastMessage lastMessage = 3;
+  string roomType = 4; // e.g., PRIVATE, GROUP
+  string updatedAt = 5;
+}
+
+message GetRoomsDataResponse {
+  repeated ChatRoom rooms = 1;
+}

@@ -9,6 +9,7 @@ import { ChatService } from './service/chat.service';
 import { AuthModule } from '@feature/auth/auth.module';
 import { ChatController } from './controller/chat.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ChatPresenceService } from './service/chat.presence.service';
 
 @Module({
   imports: [
@@ -39,7 +40,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
     AuthModule,
   ],
   controllers: [ChatController],
-  providers: [ChatServiceGateway, ChatService, AppLogger],
+  providers: [ChatServiceGateway, ChatService, AppLogger, ChatPresenceService],
   exports: [ChatServiceGateway],
 })
 export class ChatModule {}

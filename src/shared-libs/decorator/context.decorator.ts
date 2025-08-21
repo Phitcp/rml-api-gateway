@@ -1,8 +1,13 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { Character } from '@root/proto-interface/auth.proto.interface';
 
 export interface UserContext {
   userId: string;
   slugId: string;
+  username: string;
+  role: string;
+  email: string;
+  character: Character | undefined;
 }
 export interface AppContext {
   traceId: string;

@@ -8,7 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AuthService } from '@feature/auth/service/auth.service';
 import { AppLogger } from '@shared/logger';
 import { DataSyncService } from '../service/data-sync.service';
-import { BaseWebSocketGateway, BaseAuthenticatedSocket } from '@shared/websocket/base-websocket.gateway';
+import { BaseWebSocketGateway, BaseAuthenticatedSocket } from '@root/helper-service/websocket/base-websocket.gateway';
 
 interface DataSyncAuthenticatedSocket extends BaseAuthenticatedSocket {
   // Add any data-sync specific properties here if needed

@@ -10,7 +10,10 @@ import { AuthService } from '@feature/auth/service/auth.service';
 import { AppLogger } from '@shared/logger';
 import { UserInfo_Prefix, chatRoomPrefix } from '@root/redis/constant';
 import { ChatService } from '../service/chat.service';
-import { BaseWebSocketGateway, BaseAuthenticatedSocket } from '@shared/websocket/base-websocket.gateway';
+import {
+  BaseWebSocketGateway,
+  BaseAuthenticatedSocket,
+} from '@root/helper-service/websocket/base-websocket.gateway';
 
 interface ChatAuthenticatedSocket extends BaseAuthenticatedSocket {
   receiverId: string;
@@ -42,7 +45,9 @@ export class ChatServiceGateway extends BaseWebSocketGateway<ChatAuthenticatedSo
     await this.chatService.setServer(this.server);
   }
 
-  async handlePostAuthentication(client: ChatAuthenticatedSocket): Promise<void> {
+  async handlePostAuthentication(
+    client: ChatAuthenticatedSocket,
+  ): Promise<void> {
     try {
       const context = this.getContext(client);
       const receiverId = client.handshake.query.receiverId as string;
@@ -90,11 +95,13 @@ export class ChatServiceGateway extends BaseWebSocketGateway<ChatAuthenticatedSo
     @ConnectedSocket() client: ChatAuthenticatedSocket,
   ) {
     const context = this.getContext(client);
-    try {
-      const result = await this.chatService.sendMessage(context, client, message);
-      await this.chatService.postMessageSendProcessor(result);
-    } catch (error) {
-      this.logger.error(`Failed to send message: ${error.message}`);
-    }
+    await this.chatService
+      .sendMessage(context, client, message)
+      .then(async (res) => {
+        await this.chatService.postMessageSendProcessor(context, res.message);
+      })
+      .catch((error) => {
+        this.logger.error(`Failed to send message: ${error.message}`);
+      });
   }
 }
