@@ -9,6 +9,6 @@ export class ChatPresenceService extends BasePresenceService {
     protected redisService: RedisService,
     protected logger: AppLogger,
   ) {
-    super(redisService, logger, { prefix: 'chat' });
+    super(redisService, logger, { prefix: 'chat_presence' });
   }
 }

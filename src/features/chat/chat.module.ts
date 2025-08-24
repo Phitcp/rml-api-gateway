@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { ChatServiceGateway } from './websocket/chat.websocket.gateway';
 import { AppConfigModule } from '@app/config/config.module';
 
 import { AppLogger } from '@shared/logger';
@@ -10,6 +9,7 @@ import { AuthModule } from '@feature/auth/auth.module';
 import { ChatController } from './controller/chat.controller';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ChatPresenceService } from './service/chat.presence.service';
+import { ChatWebsocketService } from './service/chat.websocket.service';
 
 @Module({
   imports: [
@@ -40,7 +40,7 @@ import { ChatPresenceService } from './service/chat.presence.service';
     AuthModule,
   ],
   controllers: [ChatController],
-  providers: [ChatServiceGateway, ChatService, AppLogger, ChatPresenceService],
-  exports: [ChatServiceGateway],
+  providers: [ChatService, AppLogger, ChatPresenceService, ChatWebsocketService],
+  exports: [ChatModule, ChatWebsocketService],
 })
 export class ChatModule {}

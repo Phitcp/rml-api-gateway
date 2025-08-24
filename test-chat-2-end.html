@@ -236,7 +236,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>💬 Chat 2-End Test</h1>
+            <h1>💬 Chat 2-End Test (Unified Gateway)</h1>
             <p>HTTP History → WebSocket on First Message → Real-time Chat</p>
         </div>
 
@@ -259,9 +259,9 @@
             </div>
             
             <div class="input-group">
-                <label for="receiverId">Chat with User ID:</label>
-                <input type="text" id="receiverId" value="" placeholder="Enter user ID to chat with">
-                <div class="connection-hint">💡 WebSocket connects only when you send first message</div>
+                <label for="participantsList">Participants List:</label>
+                <input type="text" id="participantsList" value="" placeholder="user1,user2,user3 (comma-separated user IDs)">
+                <div class="connection-hint">👥 Enter all participants for the chat (including yourself if group chat)</div>
             </div>
             
             <button class="btn" onclick="startChat()">Start Chat & Fetch History</button>
@@ -270,7 +270,7 @@
         <!-- Status Bar -->
         <div id="statusBar" class="status-bar status-ready">
             <span class="ws-status ws-ready"></span>
-            Ready - HTTP history loaded, WebSocket on first message
+            Ready - Start chat to connect to unified gateway
         </div>
 
         <!-- Chat Interface -->
@@ -315,7 +315,7 @@
         let socket = null;
         let isWebSocketConnected = false;
         let isWebSocketConnecting = false;
-        let currentReceiverId = null;
+        let currentParticipants = [];
         let currentChatRoomId = null;
         let currentUserSlugId = null;  // ✅ Store user's slug ID
         let messages = [];
@@ -366,7 +366,7 @@
                 const serverUrl = document.getElementById('serverUrl').value;
                 const authToken = document.getElementById('authToken').value;
 
-                log(`📥 Fetching chat history with ${currentReceiverId} via HTTP`);
+                log(`📥 Fetching chat history with participants: [${currentParticipants.join(', ')}] via HTTP`);
 
                 const response = await fetch(`http://localhost:3000/chat/get-history`, {
                     method: 'POST',
@@ -376,7 +376,8 @@
                     },
                     body: JSON.stringify({
                         roomType: "private",
-                        participants: [currentReceiverId]
+                        participants: currentParticipants,
+                        roomId: currentChatRoomId || undefined
                     })
                 });
 
@@ -388,6 +389,12 @@
                 const historyMessages = result.messages || [];
                 
                 log(`📥 Received ${historyMessages.length} messages from history`, 'success');
+
+                // If we got messages, we must have a room ID now
+                if (historyMessages.length > 0 && historyMessages[0].roomId) {
+                    currentChatRoomId = historyMessages[0].roomId;
+                    log(`🏠 Found existing room ID: ${currentChatRoomId}`, 'success');
+                }
 
                 // Clear chat and display history
                 const chatMessages = document.getElementById('chatMessages');
@@ -440,23 +447,41 @@
                 socket = io(`${serverUrl}`, {
                     auth: {
                         token: authToken
-                    },
-                    query: {
-                        receiverId: currentReceiverId
                     }
                 });
 
                 // Connection events
                 socket.on('connect', () => {
-                    isWebSocketConnected = true;
                     isWebSocketConnecting = false;
-                    updateStatus('connected');
-                    log('✅ WebSocket connected successfully', 'success');
+                    updateStatus('connected', 'WebSocket connected - Authenticating...');
+                    log('✅ WebSocket connected! Server processing authentication...', 'info');
+                    // Don't set isWebSocketConnected=true yet, wait for connectSuccess
+                });
+
+                // Listen for basic connection success
+                socket.on('connectSuccess', function(data) {
+                    log(`🎉 Basic connection established for user: ${data.userId || 'unknown'}`, 'success');
+                    log('💬 Subscribing to Chat service...', 'info');
                     
-                    // Process any pending messages
+                    // Now subscribe to Chat service
+                    sendChatJoinRoom();
+                });
+
+                // Listen for Chat service join success
+                socket.on('chat:joinSuccess', function(data) {
+                    isWebSocketConnected = true;
+                    log(`💬 Chat service ready! Joined room: ${data.roomId}`, 'success');
+                    updateStatus('connected', 'Connected & Chat Ready');
+                    
+                    // Process any pending messages after chat service is ready
                     if (pendingMessages.length > 0) {
                         log(`📤 Sending ${pendingMessages.length} pending messages`);
-                        pendingMessages.forEach(msg => socket.emit('sendMessage', msg));
+                        pendingMessages.forEach(msg => {
+                            socket.emit('event', {
+                                type: 'chat:sendMessage',
+                                payload: msg
+                            });
+                        });
                         pendingMessages = [];
                     }
                     
@@ -466,7 +491,7 @@
                 socket.on('disconnect', () => {
                     isWebSocketConnected = false;
                     isWebSocketConnecting = false;
-                    updateStatus('disconnected');
+                    updateStatus('disconnected', 'WebSocket Disconnected');
                     log('❌ WebSocket disconnected', 'error');
                 });
 
@@ -477,9 +502,9 @@
                     reject(error);
                 });
 
-                // 🎯 MAIN EVENT LISTENER FOR RECEIVING MESSAGES
-                socket.on('receiveMessage', (data) => {
-                    log(`📨 Received message via 'receiveMessage' event: ${JSON.stringify(data)}`, 'success');
+                // 🎯 MAIN EVENT LISTENER FOR RECEIVING CHAT MESSAGES
+                socket.on('chat:messageReceived', (data) => {
+                    log(`📨 Received message via 'chat:messageReceived' event: ${JSON.stringify(data)}`, 'success');
                     
                     // ✅ Handle nested message structure: { message: {...} }
                     const messageData = data.message || data;
@@ -498,8 +523,8 @@
                 });
 
                 // Alternative event names (in case backend uses different events)
-                socket.on('newMessage', (data) => {
-                    log(`📨 Received message via 'newMessage' event: ${JSON.stringify(data)}`, 'success');
+                socket.on('chat:newMessage', (data) => {
+                    log(`📨 Received message via 'chat:newMessage' event: ${JSON.stringify(data)}`, 'success');
                     
                     // ✅ Handle nested message structure: { message: {...} }
                     const messageData = data.message || data;
@@ -517,27 +542,27 @@
                     addMessageToChat(messageData, false);
                 });
 
-                socket.on('messageStatus', (statusData) => {
+                socket.on('chat:messageStatus', (statusData) => {
                     log(`📊 Message status update: ${JSON.stringify(statusData)}`, 'info');
                     updateMessageStatus(statusData);
                 });
 
-                socket.on('userTyping', (data) => {
+                socket.on('chat:userTyping', (data) => {
                     if (data.userId !== getCurrentUserId()) {
                         showTypingIndicator(data.isTyping);
                         log(`⌨️ ${data.userId} is ${data.isTyping ? 'typing' : 'stopped typing'}`, 'info');
                     }
                 });
 
-                socket.on('userJoined', (data) => {
+                socket.on('chat:userJoined', (data) => {
                     log(`👋 User joined: ${JSON.stringify(data)}`, 'info');
                 });
 
-                socket.on('userLeft', (data) => {
+                socket.on('chat:userLeft', (data) => {
                     log(`👋 User left: ${JSON.stringify(data)}`, 'info');
                 });
 
-                socket.on('roomJoined', (data) => {
+                socket.on('chat:roomJoined', (data) => {
                     currentChatRoomId = data.roomId;
                     log(`🏠 Joined room: ${data.roomId}`, 'success');
                 });
@@ -559,11 +584,12 @@
 
         // Start chat function
         async function startChat() {
-            currentReceiverId = document.getElementById('receiverId').value.trim();
+            const participantsList = document.getElementById('participantsList').value.trim();
             currentUserSlugId = document.getElementById('mySlugId').value.trim();
 
-            if (!currentReceiverId) {
-                alert('Please enter a user ID to chat with');
+            // Validation: Need participants list
+            if (!participantsList) {
+                alert('Please enter participants list (comma-separated user IDs)');
                 return;
             }
 
@@ -577,15 +603,36 @@
                 return;
             }
 
-            try {
-                log(`🚀 Starting chat as ${currentUserSlugId} with user: ${currentReceiverId}`);
+            // Parse participants list
+            currentParticipants = participantsList.split(',').map(p => p.trim()).filter(p => p);
+            
+            if (currentParticipants.length === 0) {
+                alert('Please enter valid participants list');
+                return;
+            }
 
-                // Step 1: Fetch chat history via HTTP
+            try {
+                log(`🚀 Starting chat as ${currentUserSlugId} with participants: [${currentParticipants.join(', ')}]`);
+
+                // Step 1: Fetch chat history via HTTP to check if chat exists
                 await fetchChatHistory();
 
                 // Step 2: Show chat interface
                 document.getElementById('chatContainer').style.display = 'flex';
-                document.getElementById('chatTitle').textContent = `Chat with ${currentReceiverId}`;
+                
+                // Update chat title
+                let chatTitle;
+                if (currentParticipants.length === 1) {
+                    chatTitle = `Chat with ${currentParticipants[0]}`;
+                } else {
+                    chatTitle = `Group Chat: [${currentParticipants.join(', ')}]`;
+                }
+                
+                if (currentChatRoomId) {
+                    chatTitle += ` (Room: ${currentChatRoomId})`;
+                }
+                
+                document.getElementById('chatTitle').textContent = chatTitle;
                 document.getElementById('messageInput').focus();
 
                 updateStatus('ready', 'Chat ready - WebSocket will connect on first message');
@@ -602,13 +649,14 @@
             const messageInput = document.getElementById('messageInput');
             const content = messageInput.value.trim();
 
-            if (!content || !currentReceiverId) {
+            if (!content || !currentParticipants.length) {
                 return;
             }
 
             const tempId = `temp_${Date.now()}`;
             const messageData = {
-                receiverId: currentReceiverId,
+                participants: currentParticipants,
+                roomId: currentChatRoomId || null,
                 content: content,
                 tempId: tempId
             };
@@ -639,8 +687,11 @@
 
                 if (isWebSocketConnected) {
                     // Send immediately if connected
-                    socket.emit('sendMessage', messageData);
-                    log(`✅ Message sent via WebSocket`, 'success');
+                    socket.emit('event', {
+                        type: 'chat:sendMessage',
+                        payload: messageData
+                    });
+                    log(`✅ Message sent via WebSocket with chat:sendMessage event`, 'success');
                     updateMessageStatus({ messageId: tempId, status: 'sent' });
                 } else if (isWebSocketConnecting) {
                     // Queue if still connecting
@@ -703,7 +754,7 @@
                 timestamp = new Date().toLocaleTimeString();
             }
             
-            const senderName = isSent ? 'You' : (message.userSlugId || currentReceiverId);
+            const senderName = isSent ? 'You' : (message.userSlugId || message.senderName || 'Unknown');
 
             messageDiv.innerHTML = `
                 <div class="message-bubble">
@@ -782,7 +833,7 @@
             const indicator = document.getElementById('typingIndicator');
             if (isTyping) {
                 indicator.style.display = 'block';
-                indicator.textContent = `${currentReceiverId} is typing...`;
+                indicator.textContent = `Someone is typing...`;
             } else {
                 indicator.style.display = 'none';
             }
@@ -798,7 +849,10 @@
         function handleTyping() {
             if (socket && isWebSocketConnected) {
                 // Send typing indicator
-                socket.emit('typing', { isTyping: true });
+                socket.emit('event', {
+                    type: 'chat:typing',
+                    payload: { isTyping: true }
+                });
                 
                 // Clear previous timeout
                 if (typingTimeout) {
@@ -807,8 +861,34 @@
                 
                 // Stop typing after 1 second of no input
                 typingTimeout = setTimeout(() => {
-                    socket.emit('typing', { isTyping: false });
+                    socket.emit('event', {
+                        type: 'chat:typing',
+                        payload: { isTyping: false }
+                    });
                 }, 1000);
+            }
+        }
+
+        // Chat join room function
+        function sendChatJoinRoom() {
+            if (socket && socket.connected) {
+                const joinRoomPayload = {
+                    userId: currentUserSlugId,
+                    roomId: currentChatRoomId || null, // Use existing roomId or null for auto-generate
+                    participants: currentParticipants
+                };
+                
+                socket.emit('event', {
+                    type: 'chat:joinRoom',
+                    payload: joinRoomPayload
+                });
+                
+                log(`📤 Sent chat:joinRoom event:`, 'info');
+                log(`   - User: ${currentUserSlugId}`, 'info');
+                log(`   - Room ID: ${currentChatRoomId || 'auto-generate'}`, 'info');
+                log(`   - Participants: [${currentParticipants.join(', ')}]`, 'info');
+            } else {
+                log('❌ Cannot send chat:joinRoom - Socket not connected', 'error');
             }
         }
 
@@ -830,8 +910,8 @@
 
             // Reset UI
             document.getElementById('chatContainer').style.display = 'none';
-            document.getElementById('receiverId').value = '';
-            currentReceiverId = null;
+            document.getElementById('participantsList').value = '';
+            currentParticipants = [];
             currentChatRoomId = null;
             currentUserSlugId = null;  // ✅ Reset slug ID
             messages = [];

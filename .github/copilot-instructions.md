@@ -65,7 +65,7 @@ export class FeatureGateway implements OnGatewayConnection, OnGatewayDisconnect 
 ### 5. Redis Integration
 - User sessions: `UserInfo_Prefix + slugId`
 - Connection tracking: `ConnectedUserWs_Prefix + userId`  
-- Chat rooms: `chatRoomPrefix + roomId`
+- Chat rooms: `chatRoom_Prefix + roomId`
 - **Pattern**: Always use Redis for WebSocket state management
 
 ## Feature Module Structure

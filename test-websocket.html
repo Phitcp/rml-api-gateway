@@ -107,7 +107,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🚀 WebSocket Data Sync Test</h1>
+        <h1>🚀 WebSocket Data Sync Test (Unified Gateway)</h1>
         
         <!-- Connection Configuration -->
         <div class="input-group">
@@ -227,13 +227,12 @@
                 // Clean up any existing connection
                 cleanupSocket();
 
-                // Extract base URL (remove ws:// and path)
-                const baseUrl = serverUrl.replace('ws://', 'http://').replace('/sync', '');
+                const baseUrl = serverUrl;
                 
-                log(`🔌 Connecting to ${baseUrl} with namespace /sync...`);
+                log(`🔌 Connecting to ${baseUrl}/realtime namespace for data sync...`);
 
                 // Connect using Socket.IO with authentication
-                socket = io(`${baseUrl}/sync`, {
+                socket = io(`${baseUrl}/realtime`, {
                     auth: {
                         token: authToken
                     },
@@ -244,30 +243,44 @@
                     timeout: 5000,
                     forceNew: true,
                     autoConnect: true
-                }, {
-                    timeout: 5000,
-                    forceNew: true
                 });
 
                 socket.on('connect', function() {
-                    log('✅ Socket.IO connected successfully!', 'success');
-                    updateConnectionStatus('connected', '🟢 Connected');
-                    updateButtons(true);
+                    log('✅ Socket.IO connected! Server processing authentication...', 'info');
+                    updateConnectionStatus('connected', '🟡 Authenticating...');
+                    updateButtons(false); // Keep buttons disabled until auth success
                     reconnectAttempts = 0;
                     isConnecting = false;
                 });
 
-                socket.on('dataSync', function(data) {
+                // Listen for basic connection success
+                socket.on('connectSuccess', function(data) {
+                    log(`🎉 Basic connection established for user: ${data.userId || 'unknown'}`, 'success');
+                    log('📡 Subscribing to DataSync service...', 'info');
+                    
+                    // Now subscribe to DataSync service
+                    sendDataSyncJoin();
+                });
+
+                // Listen for DataSync service join success
+                socket.on('dataSync:joinSuccess', function(data) {
+                    log(`📊 DataSync service ready! Subscribed to: [${data.subscriptions.join(', ')}]`, 'success');
+                    log(`🏠 Joined rooms: [${data.rooms.join(', ')}]`, 'info');
+                    updateConnectionStatus('connected', '🟢 Connected & DataSync Ready');
+                    updateButtons(true); // Enable buttons after service subscription
+                });
+
+                socket.on('dataSync:update', function(data) {
                     log(`📨 Data sync received: ${JSON.stringify(data, null, 2)}`, 'success');
                     handleDataSync(data);
                 });
 
-                socket.on('sessionExpired', function(data) {
+                socket.on('dataSync:sessionExpired', function(data) {
                     log(`⏰ Session expired: ${JSON.stringify(data)}`, 'error');
                     handleSessionExpired(data);
                 });
 
-                socket.on('pong', function(data) {
+                socket.on('dataSync:pong', function(data) {
                     log(`💓 Pong received: ${JSON.stringify(data)}`, 'success');
                 });
 
@@ -317,6 +330,21 @@
             }
         }
 
+        function sendDataSyncJoin() {
+            if (socket && socket.connected) {
+                socket.emit('event', {
+                    type: 'dataSync:joinRoom',
+                    payload: {
+                        userId: 'user123', // Replace with actual user ID from token
+                        subscriptions: ['exp', 'character', 'notifications']
+                    }
+                });
+                log('📤 Sent dataSync:joinRoom event for service subscription');
+            } else {
+                log('❌ Cannot send dataSync:joinRoom - Socket not connected', 'error');
+            }
+        }
+
         function disconnectWebSocket() {
             if (socket) {
                 cleanupSocket();
@@ -329,8 +357,11 @@
 
         function sendPing() {
             if (socket && socket.connected) {
-                socket.emit('ping');
-                log('📤 Ping sent via Socket.IO');
+                socket.emit('event', {
+                    type: 'dataSync:ping',
+                    payload: {}
+                });
+                log('📤 Ping sent via Socket.IO with dataSync:ping event');
             } else {
                 log('❌ Socket.IO not connected', 'error');
             }
@@ -338,8 +369,14 @@
 
         function sendUserActivity() {
             if (socket && socket.connected) {
-                socket.emit('userActivity');
-                log('📤 User activity sent via Socket.IO');
+                socket.emit('event', {
+                    type: 'dataSync:userActivity',
+                    payload: {
+                        action: 'heartbeat',
+                        timestamp: new Date().toISOString()
+                    }
+                });
+                log('📤 User activity sent via Socket.IO with dataSync:userActivity event');
             } else {
                 log('❌ Socket.IO not connected', 'error');
             }
@@ -385,7 +422,7 @@
 
         function simulateCharacterUpdate() {
             const mockData = {
-                type: 'dataSync',
+                type: 'dataSync:update',
                 dataType: 'character',
                 data: {
                     health: Math.floor(Math.random() * 100) + 1,
@@ -400,7 +437,7 @@
 
         function simulateSessionExpiry() {
             const mockData = {
-                type: 'sessionExpired',
+                type: 'dataSync:sessionExpired',
                 message: 'Your session has expired. Please reconnect.',
                 timestamp: new Date().toISOString()
             };

@@ -13,6 +13,7 @@ import { ExpModule } from '@feature/exp/exp.module';
 import { RedisModule } from './redis/redis.module';
 import { DataSyncModule } from '@feature/data-sync/data-sync.module';
 import { ChatModule } from '@feature/chat/chat.module';
+import { WebsocketRouterModule } from '@feature/websocket/websocket.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { ChatModule } from '@feature/chat/chat.module';
     CharacterModule,
     ExpModule,
     RedisModule,
+    WebsocketRouterModule,
   ],
   controllers: [AppController],
   providers: [

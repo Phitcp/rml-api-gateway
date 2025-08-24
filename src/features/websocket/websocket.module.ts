@@ -4,11 +4,16 @@ import { ConfigService } from '@nestjs/config';
 import { AppConfigModule } from '@app/config/config.module';
 
 import { AppLogger } from '@shared/logger';
-import { DataSyncWebsocketService } from './service/data-sync.websocket.service';
 import { AuthModule } from '@feature/auth/auth.module';
+
+import { UnifiedRealtimeGateway } from './gateway/websocket.routing.gateway';
+import { EventRouterService } from './service/router.service';
+import { ChatModule } from '@feature/chat/chat.module';
+import { DataSyncModule } from '@feature/data-sync/data-sync.module';
 
 @Module({
   imports: [
+    ChatModule,
     JwtModule.registerAsync({
       imports: [AppConfigModule],
       inject: [ConfigService],
@@ -22,9 +27,14 @@ import { AuthModule } from '@feature/auth/auth.module';
         };
       },
     }),
-    AuthModule
+    AuthModule,
+    DataSyncModule
   ],
-  providers: [DataSyncWebsocketService, AppLogger],
-  exports: [DataSyncWebsocketService],
+  providers: [
+    UnifiedRealtimeGateway,
+    AppLogger,
+    EventRouterService
+  ],
+  exports: [UnifiedRealtimeGateway],
 })
-export class DataSyncModule {}
+export class WebsocketRouterModule {}

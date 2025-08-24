@@ -1,3 +1,4 @@
+import { AuthService } from './../../auth/service/auth.service';
 import { ChatPresenceService } from './chat.presence.service';
 import { Metadata } from '@grpc/grpc-js';
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
@@ -5,7 +6,7 @@ import {
   ChatMessage,
   ChatServiceClient,
   GetChatHistoryRequest,
-  PingResponse,
+  SendMessageRequest,
   SendMessageResponse,
 } from '@root/proto-interface/chat.proto.interface';
 import { AppContext } from '@shared/decorator/context.decorator';
@@ -13,18 +14,23 @@ import { RedisService } from '@root/redis/redis.service';
 import { AppLogger } from '@shared/logger';
 import { GrpcClient } from '@shared/utilities/grpc-client';
 import { firstValueFrom } from 'rxjs';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
+
+export interface ChatAuthenticatedSocket extends Socket {
+  userId: string;
+  user?: any;
+  receiverId: string;
+  receiver?: any;
+  roomId: string;
+}
 
 @Injectable()
 export class ChatService implements OnModuleDestroy {
   private grpcClient: GrpcClient<ChatServiceClient>;
   private chatServiceClient: ChatServiceClient;
-  private server: Server;
 
   constructor(
     private appLogger: AppLogger,
-    private chatPresenceService: ChatPresenceService,
-    private redisService: RedisService,
   ) {
     // High-traffic service configuration with connection pooling
     this.grpcClient = new GrpcClient<ChatServiceClient>({
@@ -50,18 +56,6 @@ export class ChatService implements OnModuleDestroy {
     this.appLogger.log('ChatService destroyed');
   }
 
-  // #region websockets
-  async ping(): Promise<PingResponse> {
-    this.appLogger.log('Ping to chat service');
-    return await firstValueFrom(this.chatServiceClient.ping({}));
-  }
-
-  async setServer(server: Server) {
-    this.server = server;
-  }
-  // #endregion
-
-  // #region http request
   async getChatHistory(
     context: AppContext,
     payload: GetChatHistoryRequest,
@@ -85,95 +79,25 @@ export class ChatService implements OnModuleDestroy {
     );
   }
 
-  async sendMessage(
-    context: AppContext,
-    client: any,
-    message: any,
-  ): Promise<SendMessageResponse> {
+
+  // socket region
+ async sendMessage(context: AppContext, payload: SendMessageRequest): Promise<SendMessageResponse> {
+    this.appLogger.log('Sending chat message');
     const metadata = new Metadata();
     metadata.add('x-trace-id', context.traceId);
+    metadata.add('user-id', context.user.userId);
 
     return await firstValueFrom(
       this.chatServiceClient.sendMessage(
         {
-          roomId: client.roomId,
-          userId: context.user.userId,
-          userSlugId: context.user.slugId,
-          participants: [message.receiverId],
-          content: message.content,
+          roomId: payload.roomId,
+          participants: payload.participants,
+          content: payload.content,
+          userId: payload.userId,
+          userSlugId: payload.userSlugId,
         },
         metadata,
       ),
     );
   }
-
-  async postMessageSendProcessor(context: AppContext, payload: ChatMessage) {
-    // Step 1: Send real-time message to users actively in the room
-    this.server.to(payload.roomId).emit('receiveMessage', { message: payload });
-
-    // Step 2: Send notifications to users NOT actively in the room
-    await this.sendSmartNotifications(context, payload.roomId, payload);
-  }
-
-  private async sendSmartNotifications(
-    context: AppContext,
-    roomId: string,
-    message: ChatMessage,
-  ) {
-    const participants = this.extractParticipants(message.roomId);
-    for (const userId of participants) {
-      // Skip sender
-      if (userId === message.userId) continue;
-
-      // Check if user is actively viewing this chat
-      const isActiveInRoom = await this.chatPresenceService.isUserActiveInRoom(
-        userId,
-        roomId,
-      );
-      const isOnline = await this.chatPresenceService.isUserOnline(userId);
-
-      if (!isActiveInRoom) {
-        // Increment unread count
-        await this.chatPresenceService.incrementUnreadCount(userId, roomId);
-
-        // Send notification based on online status
-        if (isOnline) {
-          // Send real-time notification via Redis pub/sub
-          await this.redisService.client.publish(
-            `notification:${userId}`,
-            JSON.stringify({
-              type: 'chat_message',
-              roomId,
-              senderId: message.userId,
-              senderName: message.senderName || 'Unknown User',
-              content: message.content,
-              timestamp: message.createdAt,
-              unreadCount: await this.chatPresenceService.getUnreadCount(
-                userId,
-                roomId,
-              ),
-            }),
-          );
-        } else {
-          // Queue for push notification
-          this.appLogger.log(
-            `Queuing push notification for offline user: ${userId}`,
-          );
-        }
-      }
-      // If user is actively in the room, they already got the message via receiveMessage
-    }
-  }
-
-  private extractParticipants(roomId: string): string[] {
-    // Extract user IDs from room format: chatRoom:userId1::userId2
-    const roomString = roomId.replace('chatRoom:', '');
-    return roomString.split('::');
-  }
-
-  async sendSmartNotification() {
-    this.appLogger.log('Sending smart notification');
-    // Implementation handled by postMessageSendProcessor
-  }
-  // #endregion
 }
