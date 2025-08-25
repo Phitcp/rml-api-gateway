@@ -1,3 +1,4 @@
+import { ChatWebsocketService } from '@feature/chat/service/chat.websocket.service';
 import { EventRouterService } from '../service/router.service';
 import {
   WebSocketGateway,
@@ -42,11 +43,13 @@ export class UnifiedRealtimeGateway
     protected redisService: RedisService,
     private eventRouterService: EventRouterService,
     private dataSyncWebsocketService: DataSyncWebsocketService,
+    private ChatWebsocketService: ChatWebsocketService,
   ) {}
 
   async onModuleInit() {
     // Inject server instance into services that need pub-sub
     this.dataSyncWebsocketService.setServer(this.server);
+    this.ChatWebsocketService.setServer(this.server);
   }
   
   protected getContext(client: AuthenticatedClient): AppContext {

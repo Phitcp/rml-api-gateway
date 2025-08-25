@@ -263,9 +263,8 @@
                 });
 
                 // Listen for DataSync service join success
-                socket.on('dataSync:joinSuccess', function(data) {
-                    log(`📊 DataSync service ready! Subscribed to: [${data.subscriptions.join(', ')}]`, 'success');
-                    log(`🏠 Joined rooms: [${data.rooms.join(', ')}]`, 'info');
+                socket.on('dataSync:joinRoomSuccess', function(data) {
+                    log(`📊 DataSync service ready! ${data}`, 'success');
                     updateConnectionStatus('connected', '🟢 Connected & DataSync Ready');
                     updateButtons(true); // Enable buttons after service subscription
                 });

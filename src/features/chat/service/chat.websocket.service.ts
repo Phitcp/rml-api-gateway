@@ -1,19 +1,13 @@
-import { AuthService } from '../../auth/service/auth.service';
 import { ChatPresenceService } from './chat.presence.service';
-import { Metadata } from '@grpc/grpc-js';
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import {
-  ChatMessage,
-  ChatServiceClient,
-} from '@root/proto-interface/chat.proto.interface';
+import { Injectable } from '@nestjs/common';
+import { ChatMessage } from '@root/proto-interface/chat.proto.interface';
 import { AppContext } from '@shared/decorator/context.decorator';
 import { RedisService } from '@root/redis/redis.service';
 import { AppLogger } from '@shared/logger';
-import { GrpcClient } from '@shared/utilities/grpc-client';
-import { firstValueFrom } from 'rxjs';
 import { Server, Socket } from 'socket.io';
 
-import { UserInfo_Prefix } from '@root/redis/constant';
+import { customAlphabet } from 'nanoid';
+
 import { chatRoom_Prefix } from '@feature/websocket/constant';
 import { ChatService } from './chat.service';
 
@@ -25,61 +19,68 @@ export interface ChatAuthenticatedSocket extends Socket {
   roomId: string;
 }
 
+export interface ChatJoinRoomPayload {
+  roomId: string;
+  userId: string;
+  receiverIdList?: string[];
+}
+
+export interface SocketSendMessagePayload {
+  receiverIdList: string[];
+  content: string;
+}
 @Injectable()
-export class ChatWebsocketService  {
+export class ChatWebsocketService {
+  private server: Server;
 
   constructor(
     private appLogger: AppLogger,
     private chatPresenceService: ChatPresenceService,
     private redisService: RedisService,
-    private authService: AuthService,
-    private chatService: ChatService
-  ) {
-  }
+    private chatService: ChatService,
+  ) {}
 
   // #region websockets
+  async setServer(server: Server) {
+    this.server = server;
+  }
 
-  async joinRoom(context: AppContext, client: ChatAuthenticatedSocket, payload) {
+  async joinRoom(
+    client: ChatAuthenticatedSocket,
+    payload: ChatJoinRoomPayload,
+  ) {
+    const roomId = payload.roomId
+      ? payload.roomId
+      : `${chatRoom_Prefix}${this.createChatRoomId()}`;
 
-    const receiver = await this.redisService.bulkStringKeyGetOrSet(
-      UserInfo_Prefix,
-      async () => await this.authService.getListUserInfoFromSlugs(context, receiverId),
-      3600,
-    );
-
-    const chatRoomString = client.handshake.query.chatRoomId
-      ? client.handshake.query.chatRoomId
-      : this.createChatRoomId(client.userId, receiver.userId);
-
-    const roomId = `${chatRoom_Prefix}${chatRoomString}`;
     client.roomId = roomId;
     client.join(roomId);
 
+    this.server.to(roomId).emit('chat:joinRoomSuccess', { userId: client.userId });
     this.appLogger.log(
       `User ${client.userId} connected to chat room ${roomId}`,
     );
   }
 
-  private createChatRoomId(userId1: string, userId2: string): string {
-    const sortedIds = [userId1, userId2].sort();
-    return `${sortedIds[0]}::${sortedIds[1]}`;
+  private createChatRoomId(): string {
+    const code = customAlphabet('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', 20)();
+    return code;
   }
 
   async sendMessage(
     context: AppContext,
     client: any,
-    message: any,
+    message: SocketSendMessagePayload,
   ): Promise<void> {
-      this.chatService.sendMessage(
-        context,
-        {
-          roomId: client.roomId,
-          userId: context.user.userId,
-          userSlugId: context.user.slugId,
-          participants: [message.receiverId],
-          content: message.content, 
-        },
-      ).then(async (res) => {
+    this.chatService
+      .sendMessage(context, {
+        roomId: client.roomId,
+        userId: context.user.userId,
+        userSlugId: context.user.slugId,
+        participants: message.receiverIdList,
+        content: message.content,
+      })
+      .then(async (res) => {
         await this.postMessageSendProcessor(context, res.message, client);
       })
       .catch((error) => {
@@ -93,7 +94,7 @@ export class ChatWebsocketService  {
     client: ChatAuthenticatedSocket,
   ) {
     // Step 1: Send real-time message to users actively in the room
-    client.to(payload.roomId).emit('receiveMessage', { message: payload });
+    client.to(payload.roomId).emit('chat:receiveMessage', { message: payload });
 
     // Step 2: Send notifications to users NOT actively in the room
     await this.sendSmartNotifications(context, payload.roomId, payload);

@@ -5,6 +5,8 @@ import { basename } from 'path';
 import { GrpcClient } from '@shared/utilities/grpc-client';
 import {
   AuthServiceClient,
+  GetUserFromSlugResponse,
+  GetUserListFromSlugListResponse,
   GetUserTokensResponse,
   LoginResponse,
   RotateTokenResponse,
@@ -173,5 +175,27 @@ export class AuthService implements OnModuleDestroy {
     );
     this.appLogger.log('Did logOut');
     return response;
+  }
+
+  async getUserFromSlugByBulk(context: AppContext, slugs: string[]): Promise<GetUserListFromSlugListResponse> {
+    this.appLogger
+      .addLogContext(context.traceId)
+      .addMsgParam(basename(__filename))
+      .addMsgParam('getUserFromSlugByBulk');
+
+    this.appLogger.log('Will getUserFromSlugByBulk');
+    const metadata = new Metadata();
+    metadata.add('x-trace-id', context.traceId);
+
+    try {
+      const response = await firstValueFrom(
+        this.authService.getListUserInfoFromSlugs({ slugIds: slugs }, metadata),
+      );
+      this.appLogger.log('Did getUserFromSlugByBulk');
+      return response
+    } catch (error) {
+      this.appLogger.error(`Failed to getUserFromSlugByBulk for slugs ${slugs.join(', ')}: ${error.message}`);
+      throw error;
+    }
   }
 }

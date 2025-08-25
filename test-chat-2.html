@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat 2-End Test</title>
+    <title>Chat 2 </title>
     <style>
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -236,7 +236,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>💬 Chat 2-End Test (Unified Gateway)</h1>
+            <h1>💬 Chat 2  (Unified Gateway)</h1>
             <p>HTTP History → WebSocket on First Message → Real-time Chat</p>
         </div>
 
@@ -402,7 +402,13 @@
                 messages = [];
 
                 if (historyMessages.length > 0) {
-                    historyMessages.forEach(message => {
+                    // ✅ Sort by messageId (larger messageId = newer message) to show chronological order
+                    const sortedMessages = [...historyMessages].sort((a, b) => {
+                        const messageIdA = parseInt(a.messageId) || 0;
+                        const messageIdB = parseInt(b.messageId) || 0;
+                        return messageIdA - messageIdB; // Ascending order: oldest first
+                    });
+                    sortedMessages.forEach(message => {
                         addMessageToChat(message, true); // true = from history
                     });
                 } else {
@@ -463,12 +469,18 @@
                     log(`🎉 Basic connection established for user: ${data.userId || 'unknown'}`, 'success');
                     log('💬 Subscribing to Chat service...', 'info');
                     
+                    // Validate we have participants before joining room
+                    if (!currentParticipants || currentParticipants.length === 0) {
+                        log('❌ No participants found - cannot join chat room', 'error');
+                        return;
+                    }
+                    
                     // Now subscribe to Chat service
                     sendChatJoinRoom();
                 });
 
                 // Listen for Chat service join success
-                socket.on('chat:joinSuccess', function(data) {
+                socket.on('chat:joinRoomSuccess', function(data) {
                     isWebSocketConnected = true;
                     log(`💬 Chat service ready! Joined room: ${data.roomId}`, 'success');
                     updateStatus('connected', 'Connected & Chat Ready');
@@ -502,30 +514,10 @@
                     reject(error);
                 });
 
-                // 🎯 MAIN EVENT LISTENER FOR RECEIVING CHAT MESSAGES
-                socket.on('chat:messageReceived', (data) => {
-                    log(`📨 Received message via 'chat:messageReceived' event: ${JSON.stringify(data)}`, 'success');
-                    
-                    // ✅ Handle nested message structure: { message: {...} }
-                    const messageData = data.message || data;
-                    
-                    // ✅ Prevent duplicate messages: ignore messages from current user
-                    const currentUserSlug = getCurrentUserSlugId();
-                    if (messageData.userSlugId === currentUserSlug) {
-                        log(`🚫 Ignoring own message to prevent duplicates: ${messageData.content}`, 'info');
-                        
-                        // ✅ Instead of showing duplicate, just update the status of existing optimistic message
-                        updateOptimisticMessage(messageData);
-                        return;
-                    }
-                    
-                    addMessageToChat(messageData, false); // false = real-time message
-                });
-
                 // Alternative event names (in case backend uses different events)
-                socket.on('chat:newMessage', (data) => {
-                    log(`📨 Received message via 'chat:newMessage' event: ${JSON.stringify(data)}`, 'success');
-                    
+                socket.on('chat:receiveMessage', (data) => {
+                    log(`📨 Received message via 'chat:receiveMessage' event: ${JSON.stringify(data)}`, 'success');
+
                     // ✅ Handle nested message structure: { message: {...} }
                     const messageData = data.message || data;
                     
@@ -872,6 +864,17 @@
         // Chat join room function
         function sendChatJoinRoom() {
             if (socket && socket.connected) {
+                // Debug: Check current state
+                log(`🔍 Current state before joining room:`, 'info');
+                log(`   - currentUserSlugId: ${currentUserSlugId}`, 'info');
+                log(`   - currentChatRoomId: ${currentChatRoomId}`, 'info');
+                log(`   - currentParticipants: [${currentParticipants.join(', ')}]`, 'info');
+                
+                if (!currentParticipants || currentParticipants.length === 0) {
+                    log('❌ Cannot join room - participants list is empty!', 'error');
+                    return;
+                }
+                
                 const joinRoomPayload = {
                     userId: currentUserSlugId,
                     roomId: currentChatRoomId || null, // Use existing roomId or null for auto-generate
@@ -883,7 +886,7 @@
                     payload: joinRoomPayload
                 });
                 
-                log(`📤 Sent chat:joinRoom event:`, 'info');
+                log(`📤 Sent chat:joinRoom event:`, 'success');
                 log(`   - User: ${currentUserSlugId}`, 'info');
                 log(`   - Room ID: ${currentChatRoomId || 'auto-generate'}`, 'info');
                 log(`   - Participants: [${currentParticipants.join(', ')}]`, 'info');
@@ -923,7 +926,7 @@
         // Initialize
         window.onload = () => {
             updateStatus('ready');
-            log('💬 Chat 2-End Test initialized - Ready to start!', 'success');
+            log('💬 Chat 2  initialized - Ready to start!', 'success');
         };
 
         // Cleanup on page unload

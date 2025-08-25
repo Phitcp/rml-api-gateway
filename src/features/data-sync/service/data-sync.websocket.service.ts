@@ -3,12 +3,15 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { AppLogger } from '@shared/logger';
 import { Server, Socket } from 'socket.io';
 import { Redis } from 'ioredis';
-import { AppContext } from '@shared/decorator/context.decorator';
 import { dataSync_Prefix } from '@feature/websocket/constant';
 
 export interface DataSyncAuthenticatedSocket extends Socket {
   userId: string;
   user?: any;
+}
+
+export interface DataSyncJoinRoomPayload {
+  userId: string;
 }
 
 @Injectable()
@@ -56,8 +59,12 @@ export class DataSyncWebsocketService implements OnModuleDestroy, OnModuleInit {
     this.logger.log('DataSyncGateway initialized and subscriptions set up');
   }
 
-  async joinRoom(context: AppContext, client: DataSyncAuthenticatedSocket) {
-    client.join(`${dataSync_Prefix}${client.userId}`);
+  async joinRoom(client: DataSyncAuthenticatedSocket) {
+    const roomId = `${dataSync_Prefix}${client.userId}`;
+    client.join(roomId);
+    this.server.to(roomId).emit('dataSync:joinRoomSuccess', {
+      message: `Successfully joined room: ${roomId}`,
+    });
   }
 
   private syncUserData(userId: string, dataType: string, updatedData: any) {
