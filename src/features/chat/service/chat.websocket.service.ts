@@ -105,49 +105,30 @@ export class ChatWebsocketService {
     roomId: string,
     message: ChatMessage,
   ) {
-    const participants = this.extractParticipants(message.roomId);
-    for (const userId of participants) {
-      // Skip sender
-      if (userId === message.userId) continue;
+    // const participants = this.extractParticipants(message.roomId);
+    // for (const userId of participants) {
+    //   if (userId === message.userId) continue;
 
-      // Check if user is actively viewing this chat
-      const isActiveInRoom = await this.chatPresenceService.isUserActiveInRoom(
-        userId,
-        roomId,
-      );
-      const isOnline = await this.chatPresenceService.isUserOnline(userId);
+    //   const isActiveInRoom = await this.chatPresenceService.isUserActiveInRoom(
+    //     userId,
+    //     roomId,
+    //   );
+    //   const isOnline = await this.chatPresenceService.isUserOnline(userId);
 
-      if (!isActiveInRoom) {
-        // Increment unread count
-        await this.chatPresenceService.incrementUnreadCount(userId, roomId);
+    //   if (!isActiveInRoom) {
+    //     await this.chatPresenceService.incrementUnreadCount(userId, roomId);
 
-        // Send notification based on online status
-        if (isOnline) {
-          // Send real-time notification via Redis pub/sub
+    //     if (isOnline) {
           await this.redisService.client.publish(
-            `notification:${userId}`,
-            JSON.stringify({
-              type: 'chat_message',
-              roomId,
-              senderId: message.userId,
-              senderName: message.senderName || 'Unknown User',
-              content: message.content,
-              timestamp: message.createdAt,
-              unreadCount: await this.chatPresenceService.getUnreadCount(
-                userId,
-                roomId,
-              ),
-            }),
-          );
-        } else {
-          // Queue for push notification
-          this.appLogger.log(
-            `Queuing push notification for offline user: ${userId}`,
-          );
-        }
-      }
+            `notification:send`,'Test websocket notification')
+      //   } else {
+      //     this.appLogger.log(
+      //       `Queuing push notification for offline user: ${userId}`,
+      //     );
+      //   }
+      // }
       // If user is actively in the room, they already got the message via receiveMessage
-    }
+    // }
   }
 
   private extractParticipants(roomId: string): string[] {

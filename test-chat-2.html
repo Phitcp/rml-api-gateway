@@ -841,10 +841,10 @@
         function handleTyping() {
             if (socket && isWebSocketConnected) {
                 // Send typing indicator
-                socket.emit('event', {
-                    type: 'chat:typing',
-                    payload: { isTyping: true }
-                });
+                // socket.emit('event', {
+                //     type: 'chat:typing',
+                //     payload: { isTyping: true }
+                // });
                 
                 // Clear previous timeout
                 if (typingTimeout) {
@@ -852,12 +852,12 @@
                 }
                 
                 // Stop typing after 1 second of no input
-                typingTimeout = setTimeout(() => {
-                    socket.emit('event', {
-                        type: 'chat:typing',
-                        payload: { isTyping: false }
-                    });
-                }, 1000);
+                // typingTimeout = setTimeout(() => {
+                //     socket.emit('event', {
+                //         type: 'chat:typing',
+                //         payload: { isTyping: false }
+                //     });
+                // }, 1000);
             }
         }
 

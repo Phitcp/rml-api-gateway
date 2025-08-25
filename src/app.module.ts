@@ -14,6 +14,7 @@ import { RedisModule } from './redis/redis.module';
 import { DataSyncModule } from '@feature/data-sync/data-sync.module';
 import { ChatModule } from '@feature/chat/chat.module';
 import { WebsocketRouterModule } from '@feature/websocket/websocket.module';
+import { NotificationModule } from '@feature/notification/notification.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { WebsocketRouterModule } from '@feature/websocket/websocket.module';
     ExpModule,
     RedisModule,
     WebsocketRouterModule,
+    NotificationModule
   ],
   controllers: [AppController],
   providers: [
